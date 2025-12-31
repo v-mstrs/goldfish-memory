@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css">
+  <title>Popup</title>
+</head>
+
+<body>
+  <div class="main">
+    <h1>GoldfishDB</h1>
+
+    <div class="row">
+      <select id="novelSelect" class="flex-grow">
+        <option value="" disabled selected>Select Novel</option>
+      </select>
+      <button id="toggleNovelDrawer" class="toggle-btn" title="Add New Novel">
+        <span id="arrow">▼</span>
+      </button>
+    </div>
+
+    <div id="novelAddDrawer" class="hidden">
+      <div class="row">
+        <input type="text" id="newNovelInput" placeholder="New Novel Name...">
+        <button id="saveNovelBtn" style="background: #28a745;">Add</button>
+      </div>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #333; margin: 5px 0;">
+
+    <input type="text" id="charName" placeholder="Main Name (e.g. Artoria)">
+    <input type="text" id="charAliases" placeholder="Aliases (comma separated: Saber, Altria)">
+
+    <textarea id="charDesc" placeholder="Character Description..."></textarea>
+    <textarea id="charImgUrl" placeholder="Image URL (Optional)"></textarea>
+
+    <button id="addCharBtn">Add Character</button>
+    <button id="openOptions">Manage All Characters</button>
+
+    <div class="json">
+      <button id="importBtn">Import JSON</button>
+      <button id="exportBtn">Export JSON</button>
+    </div>
+  </div>
+
+  <script type="module" src="./popup.ts"></script>
+</body>
+
+</html>
