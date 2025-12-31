@@ -9,10 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "@types/chrome": "^0.1.32",
+    "@types/firefox-webext-browser": "^143.0.0",
     "dexie": "^4.2.1",
     "webextension-polyfill": "^0.12.0"
   }

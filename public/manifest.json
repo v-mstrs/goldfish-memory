@@ -3,7 +3,13 @@
   "name": "goldfish-dexie",
   "version": "0.1.0",
   "action": {
-    "default_popup": "src/popup/index.html"
+    "default_popup": "index.html" 
   },
-  "permissions": ["storage"]
+  "permissions": ["storage"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "goldfish-db@yourproject.com",
+      "strict_min_version": "109.0"
+    }
+  }
 }
