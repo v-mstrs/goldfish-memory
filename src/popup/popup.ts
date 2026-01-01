@@ -61,14 +61,17 @@ async function syncDraft(mode: DraftMode) {
 }
 
 const toggleDrawer = (forceState?: boolean) => {
+    // 1. Toggle the visibility of the drawer
     const isHidden = UI.novel.drawer.classList.toggle('hidden', forceState);
 
-    if (UI.novel.drawer) {
-        UI.novel.drawer.textContent = isHidden ? '▼' : '▲';
+    // 2. ONLY update the text of the ARROW span, not the whole drawer!
+    if (UI.novel.arrow) {
+        UI.novel.arrow.textContent = isHidden ? '▼' : '▲';
     }
 
+    // 3. Focus the novel name input if opening the drawer
     if (!isHidden) {
-        UI.char.name.focus();
+        UI.novel.name.focus();
     }
 };
 
