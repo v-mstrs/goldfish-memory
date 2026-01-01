@@ -15,14 +15,13 @@ export async function addCharacter(novelId: number, name: string, aliases: strin
         .first();
 
     if (existing) {
+        console.log("Existing character. Overwriting...")
         // Update existing with the new image URL
         return await db.characters.update(existing.id!, { aliases, description, imageUrl });
-    } else {
-        // Save new character with image URL
-        return await db.characters.add({
-            novelId, name, aliases, description, imageUrl, createdAt: Date.now()
-        });
     }
+    return await db.characters.add({
+        novelId, name, aliases, description, imageUrl, createdAt: Date.now()
+    });
 }
 
 export async function getCharactersByNovel(novelId: number) {

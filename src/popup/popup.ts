@@ -104,8 +104,8 @@ async function handleSaveNovel() {
         elements.newNovelInput.value = '';
         toggleDrawer(true);
         await refreshNovelDropdown(newId);
-
-        showNovelToast(title); // 👈 success indicator
+        showNovelToast(title);
+        console.log(`Saved novel: ${title}`)
     } catch (err) {
         console.error("Failed to save novel:", err);
         alert("Error saving novel.");
