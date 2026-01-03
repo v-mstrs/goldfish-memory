@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && vite build -c vite.content.config.ts",
+    "build:base": "tsc && vite build && vite build -c vite.content.config.ts && vite build -c vite.background.config.ts",
+    "build": "npm run build:base && node scripts/build-dist.js",
     "preview": "vite preview"
   },
   "devDependencies": {

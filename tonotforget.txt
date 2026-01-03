@@ -1,4 +1,0 @@
-npm create vite@latest goldfish-dexie -- --template vanilla-ts
-cd goldfish-dexie
-npm install
-npm install webextension-polyfill

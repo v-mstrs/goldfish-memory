@@ -7,11 +7,11 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    emptyOutDir: false, // Don't delete the popup build
+    emptyOutDir: false, 
     lib: {
-      entry: resolve(__dirname, "src/content.ts"),
-      name: "content",
-      fileName: () => "content.js",
+      entry: resolve(__dirname, "src/background.ts"),
+      name: "background",
+      fileName: () => "background.js",
       formats: ["iife"],
     },
     rollupOptions: {
