@@ -1,15 +1,7 @@
 import { addNovel, getAllNovels, addCharacter, exportDatabase } from '../db/crud';
+import { type DraftMode, type DraftState } from '../types'
 import browser from "webextension-polyfill";
 
-interface DraftState {
-    selectedNovel?: string;
-    charName?: string;
-    charAliases?: string;
-    charDesc?: string;
-    charImg?: string;
-}
-
-type DraftMode = 'save' | 'load';
 
 const UI = {
     novel: {

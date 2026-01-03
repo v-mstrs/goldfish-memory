@@ -2,6 +2,13 @@
   "manifest_version": 3,
   "name": "goldfish-dexie",
   "version": "0.1.0",
+  "content_scripts": [
+    {
+      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*"],
+      "js": ["content.js"],
+      "type": "module"
+    }
+  ],
   "action": {
     "default_popup": "index.html" 
   },
