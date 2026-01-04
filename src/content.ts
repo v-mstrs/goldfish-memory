@@ -91,11 +91,11 @@ function injectGoldfishStyles() {
     style.textContent = `
         .goldfish-highlight {
             position: relative !important;
-            color: #2ecc71 !important; 
+            color: #6495ED !important; 
             display: inline !important;
             padding: 0 2px !important;
             border-radius: 3px !important;
-            border-bottom: 1px dotted #2ecc71 !important;
+            border-bottom: 1px dotted #6495ED !important;
             cursor: help !important;
             font-weight: bold !important;
         }

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "content_scripts": [
     {
-      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*"],
+      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*"],
       "js": ["content.js"]
     }
   ],

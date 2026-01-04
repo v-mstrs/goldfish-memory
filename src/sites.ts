@@ -10,11 +10,11 @@ export const SITES = [
   },
   {
     hostname: 'fenrirealm.com',
-    contentSelector: ('[id^="reader-area-"]')
+    contentSelector: ('.content-area')
   },
   {
     hostname: 'webnoveltranslations.com',
-    contentSelector: ('#novel-chapter-container')
+    contentSelector: ('.novel-chapter-container')
   }
 ] as const;
 
