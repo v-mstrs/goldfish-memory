@@ -226,8 +226,11 @@ const init = async () => {
     };
 
     UI.novel.saveBtn?.addEventListener('click', handleSaveNovel);
-    UI.char.saveBtn?.addEventListener('click', onSaveSuccess);
+    UI.novel.name?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleSaveNovel();
+    });
 
+    UI.char.saveBtn?.addEventListener('click', onSaveSuccess);
     UI.char.name?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') onSaveSuccess();
     });
