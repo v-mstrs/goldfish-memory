@@ -1,4 +1,3 @@
-// src/site.ts
 export const SITES = [
   {
     hostname: 'wetriedtls.com',
