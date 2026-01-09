@@ -93,7 +93,7 @@ select {
     box-sizing: border-box;
     transition: border-color 0.2s;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 16px;
 }
 
 input:focus,
@@ -158,10 +158,6 @@ select:focus {
     resize: none;
 }
 
-#charImgUrl {
-    height: 35px;
-    resize: none;
-}
 
 .goldfish-highlight {
     border-bottom: 2px dashed #007acc;
