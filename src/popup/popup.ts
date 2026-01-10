@@ -95,9 +95,10 @@ function showNovelToast(title: string) {
 async function handleSaveNovel() {
     const title = UI.novel.name.value.trim();
 
-    if (!title)
+    if (!title) {
         showStatus("Novel title required", "error");
         return;
+    }
 
     try {
         UI.novel.saveBtn.disabled = true;
