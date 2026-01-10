@@ -6,6 +6,7 @@ html {
 
 body {
     width: 350px;
+    min-height: 600px;
     margin: 0;
     padding: 0;
     background-color: #1a1a1a;
@@ -80,6 +81,8 @@ body {
     }
     #charImgUrl {
         color: #aaa;
+        border-style: dashed;
+
     }
 }
 

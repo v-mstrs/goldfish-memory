@@ -17,7 +17,7 @@ const UI = {
         name: document.getElementById("charName") as HTMLInputElement,
         aliases: document.getElementById("charAliases") as HTMLInputElement,
         desc: document.getElementById("charDesc") as HTMLTextAreaElement,
-        img: document.getElementById("charImgUrl") as HTMLTextAreaElement,
+        img: document.getElementById("charImgUrl") as HTMLInputElement,
         saveBtn: document.getElementById("addCharBtn") as HTMLButtonElement,
     },
     storage: {
@@ -53,15 +53,13 @@ async function syncDraft(mode: DraftMode) {
 }
 
 const toggleDrawer = (forceState?: boolean) => {
-    // 1. Toggle the visibility of the drawer
     const isHidden = UI.novel.drawer.classList.toggle('hidden', forceState);
 
-    // 2. ONLY update the text of the ARROW span, not the whole drawer!
+    // ONLY update the text of the ARROW span, not the whole drawer!
     if (UI.novel.arrow) {
         UI.novel.arrow.textContent = isHidden ? '▼' : '▲';
     }
 
-    // 3. Focus the novel name input if opening the drawer
     if (!isHidden) {
         UI.novel.name.focus();
     }
@@ -96,7 +94,6 @@ function showNovelToast(title: string) {
 
     toast.textContent = `✔ Novel "${title}" added`;
 
-    // Reset classes in case it's already visible
     toast.classList.remove('hidden', 'hide', 'show');
 
     // Force a tiny reflow so the browser notices the classes were removed
@@ -185,10 +182,12 @@ async function handleSaveCharacter() {
             UI.char.saveBtn.style.backgroundColor = originalBg;
             UI.char.saveBtn.disabled = false;
         }, 2000);
-
+        
+        return true;
     } catch (err) {
         console.error("Failed to save character:", err);
         UI.char.saveBtn.disabled = false;
+        return false;
     }
 }
 
@@ -216,10 +215,12 @@ const init = async () => {
     const onSaveSuccess = async () => {
         console.log("Save initiated...");
         try {
-            await handleSaveCharacter();
-            // If handleSaveCharacter succeeds, then we clear the draft
-            console.log("Save function finished, now clearing draft...");
-            await browser.storage.local.remove('draft');
+            const success = await handleSaveCharacter();
+            if (success) {
+                // If handleSaveCharacter succeeds, then we clear the draft
+                console.log("Save function finished, now clearing draft...");
+                await browser.storage.local.remove('draft');
+            }
         } catch (err) {
             console.error("CRITICAL ERROR IN onSaveSuccess:", err);
         }
