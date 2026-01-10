@@ -2,36 +2,39 @@ import browser from "webextension-polyfill";
 import { getCharactersByNovel, addCharacter } from "./db/crud";
 import "./contextMenu";
 
-console.log("[Goldfish] Background script starting...");
-
+/**
+ * Main message listener for the background script.
+ * Handles database queries and character creation.
+ */
 browser.runtime.onMessage.addListener(async (message: any) => {
-    console.log("Background received message:", message.type);
-    if (message.type === 'PING') {
-        return { status: 'pong' };
-    }
-    if (message.type === 'GET_CHARACTERS') {
-        try {
-            const characters = await getCharactersByNovel(message.novelId);
-            console.log(`Found ${characters.length} characters for novel ${message.novelId}`);
-            return characters;
-        } catch (error) {
-            console.error("Background error fetching characters:", error);
-            return [];
-        }
-    } else if (message.type === 'ADD_CHARACTER') {
-        try {
-            await addCharacter(
-                message.novelId,
-                message.name,
-                message.aliases || [],
-                message.description || "",
-                message.imageUrl || ""
-            );
-            console.log("Character added successfully.");
-            return { success: true };
-        } catch (error) {
-            console.error("Error adding character:", error);
-            return { success: false, error: (error as Error).message };
-        }
+    switch (message.type) {
+        case 'PING':
+            return { status: 'pong' };
+
+        case 'GET_CHARACTERS':
+            try {
+                return await getCharactersByNovel(message.novelId);
+            } catch (error) {
+                console.error("[Goldfish] Error fetching characters:", error);
+                return [];
+            }
+
+        case 'ADD_CHARACTER':
+            try {
+                await addCharacter(
+                    message.novelId,
+                    message.name,
+                    message.aliases || [],
+                    message.description || "",
+                    message.imageUrl || ""
+                );
+                return { success: true };
+            } catch (error) {
+                console.error("[Goldfish] Error adding character:", error);
+                return { success: false, error: (error as Error).message };
+            }
+
+        default:
+            return null;
     }
 });

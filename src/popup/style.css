@@ -29,7 +29,7 @@ body {
         margin: 0;
     }
 
-    button {
+    button { /* add character */
         cursor: pointer;
         border-radius: 6px;
         border: none;
