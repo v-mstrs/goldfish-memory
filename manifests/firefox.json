@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "content_scripts": [
     {
-      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*"],
+      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*", "https://webnoveltranslations.com/*"],
       "js": ["content.js"]
     }
   ],
@@ -14,7 +14,7 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "contextMenus", "menus"],
   "browser_specific_settings": {
     "gecko": {
       "id": "goldfish-db@yourproject.com",

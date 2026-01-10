@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "content_scripts": [
     {
-      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*"],
+      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*", "https://webnoveltranslations.com/*"],
       "js": ["content.js"]
     }
   ],
@@ -14,5 +14,5 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage"]
+  "permissions": ["storage", "contextMenus", "menus"]
 }

@@ -2,8 +2,11 @@ import { getActiveConfig } from "./sites";
 import { type DraftState } from "./types";
 import { type Character } from "./db/schema";
 import browser from "webextension-polyfill";
+import { showAddCharacterModal } from "./modal";
 
 console.log("CONTENT SCRIPT LOADED");
+
+let currentNovelId: number | null = null;
 
 async function processSiteContent(siteConfig: any) {
     const storage = await browser.storage.local.get('draft');
@@ -14,9 +17,11 @@ async function processSiteContent(siteConfig: any) {
         return;
     }
 
+    currentNovelId = parseInt(draft.selectedNovel);
+
     const characters = await browser.runtime.sendMessage({ 
         type: 'GET_CHARACTERS', 
-        novelId: parseInt(draft.selectedNovel) 
+        novelId: currentNovelId 
     }) as Character[];
 
     const container = document.querySelector(siteConfig.contentSelector) as HTMLElement;
@@ -152,5 +157,33 @@ const init = async () => {
 
     await processSiteContent(siteConfig);
 }
+
+// Listen for messages from background script
+browser.runtime.onMessage.addListener((message: any) => {
+    if (message.type === "CONTEXT_MENU_ADD_CHARACTER") {
+        console.log("%c[Goldfish] Character to add:", "color: #6495ED; font-weight: bold;", message.text);
+        if (currentNovelId) {
+            // Try to get selection coordinates
+            let rect: DOMRect | undefined;
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                // We assume the user just clicked right click -> Add Character, 
+                // so the selection should still be the one they clicked.
+                // However, sometimes context menu click might change selection? 
+                // Usually it doesn't unless they left click.
+                try {
+                    rect = selection.getRangeAt(0).getBoundingClientRect();
+                } catch (e) {
+                    console.log("Could not get selection rect", e);
+                }
+            }
+
+            showAddCharacterModal(message.text, currentNovelId, rect);
+        } else {
+            console.warn("[Goldfish] No novel selected, cannot add character.");
+            alert("Please select a novel in the Goldfish extension popup first.");
+        }
+    }
+});
 
 init()
