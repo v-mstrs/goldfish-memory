@@ -1,5 +1,4 @@
 import { getActiveConfig } from "./sites";
-import { type DraftState } from "./types";
 import { type Character } from "./db/schema";
 import browser from "webextension-polyfill";
 import { showAddCharacterModal } from "./modal";
@@ -7,90 +6,124 @@ import { showAddCharacterModal } from "./modal";
 console.log("CONTENT SCRIPT LOADED");
 
 let currentNovelId: number | null = null;
+let isProcessing = false;
+let lastUrl = location.href;
+
+async function waitForContainer(selector: string, timeout = 10000): Promise<HTMLElement | null> {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        const el = document.querySelector(selector) as HTMLElement;
+        // Novel sites often load content dynamically; wait for substantial text
+        if (el && el.textContent && el.textContent.trim().length > 200) {
+            return el;
+        }
+        await new Promise(r => setTimeout(r, 500));
+    }
+    return document.querySelector(selector) as HTMLElement | null;
+}
 
 async function processSiteContent(siteConfig: any) {
-    const storage = await browser.storage.local.get('draft');
-    const draft = storage.draft as DraftState;
+    if (isProcessing) return;
+    if (!siteConfig) return;
+    
+    isProcessing = true;
+    console.log("[Goldfish] Checking for characters to highlight...");
 
-    if (!draft?.selectedNovel) {
-        console.log("[Goldfish] No selected novel");
-        return;
-    }
+    try {
+        const storage = await browser.storage.local.get(['activeNovelId']);
+        const activeNovelId = storage.activeNovelId as string;
 
-    currentNovelId = parseInt(draft.selectedNovel);
-
-    const characters = await browser.runtime.sendMessage({ 
-        type: 'GET_CHARACTERS', 
-        novelId: currentNovelId 
-    }) as Character[];
-
-    const container = document.querySelector(siteConfig.contentSelector) as HTMLElement;
-
-    if (!container) {
-        console.log(`[Goldfish] no container ${container}`);
-        return;
-    }
-
-    injectGoldfishStyles();
-
-    const searchTerms = [];
-    for (const char of characters) {
-        let names = [char.name, ...(char.aliases ?? [])]; // [name1, name2...]
-        for (const n of names) {
-            const clean = n.trim();
-            if (clean) searchTerms.push({ name: clean, desc: char.description, img: char.imageUrl });
+        if (!activeNovelId) {
+            console.log("[Goldfish] No novel selected in extension.");
+            isProcessing = false;
+            return;
         }
-    }
 
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-    let currentNode: Node | null;
-    const textNodes: Text[] = [];
+        currentNovelId = parseInt(activeNovelId);
 
-    // We collect them into a list first so we don't get lost while modifying the DOM
-    while (currentNode = walker.nextNode()) {
-        textNodes.push(currentNode as Text);
-    }
+        // Verify background script is responsive
+        try {
+            await browser.runtime.sendMessage({ type: 'PING' });
+        } catch (e) {
+            console.warn("[Goldfish] Background script not responding. Attempting to proceed anyway...");
+        }
 
-    const HIGHLIGHT_LIMIT = 5;
+        const characters = await browser.runtime.sendMessage({ 
+            type: 'GET_CHARACTERS', 
+            novelId: currentNovelId 
+        }) as Character[];
 
-    // For every character name, search the text nodes
-    for (const term of searchTerms) {
-        let count = 0;
-        const escaped = term.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`\\b(${escaped})\\b`, 'gi');
+        console.log(`[Goldfish] Fetched ${characters.length} characters.`);
 
-        for (const node of textNodes) {
-            if (count >= HIGHLIGHT_LIMIT) // Stop if we hit 5 for this name
-                break; 
+        const container = await waitForContainer(siteConfig.contentSelector);
 
-            const parent = node.parentElement;
-            // Safety: Don't highlight if we already did or if it's a script/style
-            if (!parent || parent.classList.contains('goldfish-highlight') || 
-                parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') continue;
+        if (!container) {
+            console.log(`[Goldfish] Content container not found: ${siteConfig.contentSelector}`);
+            isProcessing = false;
+            return;
+        }
 
-            const text = node.nodeValue || "";
-            if (regex.test(text)) {
-                // Re-run match to get the specific text
-                const newHTML = text.replace(regex, (match) => {
-                    if (count < HIGHLIGHT_LIMIT) {
-                        count++;
-                        let imgTag = term.img ? `<img src="${term.img}">` : "";
-                        const tooltip = `<span class="goldfish-tooltip">${imgTag}<span class="goldfish-tooltip-text">${term.desc}</span></span>`;
-                        return `<span class="goldfish-highlight">${match}${tooltip}</span>`;
+        injectGoldfishStyles();
+
+        const searchTerms = [];
+        for (const char of characters) {
+            let names = [char.name, ...(char.aliases ?? [])];
+            for (const n of names) {
+                const clean = n.trim();
+                if (clean) searchTerms.push({ name: clean, desc: char.description, img: char.imageUrl });
+            }
+        }
+
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+        let currentNode: Node | null;
+        const textNodes: Text[] = [];
+
+        while (currentNode = walker.nextNode()) {
+            textNodes.push(currentNode as Text);
+        }
+
+        const HIGHLIGHT_LIMIT = 5;
+        let totalMatches = 0;
+
+        for (const term of searchTerms) {
+            let count = 0;
+            const escaped = term.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b(${escaped})\\b`, 'gi');
+
+            for (const node of textNodes) {
+                if (count >= HIGHLIGHT_LIMIT) break; 
+
+                const parent = node.parentElement;
+                if (!parent || parent.classList.contains('goldfish-highlight') || 
+                    parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') continue;
+
+                const text = node.nodeValue || "";
+                if (regex.test(text)) {
+                    const newHTML = text.replace(regex, (match) => {
+                        if (count < HIGHLIGHT_LIMIT) {
+                            count++;
+                            totalMatches++;
+                            let imgTag = term.img ? `<img src="${term.img}">` : "";
+                            const tooltip = `<span class="goldfish-tooltip">${imgTag}<span class="goldfish-tooltip-text">${term.desc}</span></span>`;
+                            return `<span class="goldfish-highlight">${match}${tooltip}</span>`;
+                        }
+                        return match;
+                    });
+
+                    if (newHTML !== text) {
+                        const wrapper = document.createElement('span');
+                        wrapper.innerHTML = newHTML;
+                        node.replaceWith(...wrapper.childNodes);
                     }
-                    return match;
-                });
-
-                // If we actually changed something, update the DOM
-                if (newHTML !== text) {
-                    const wrapper = document.createElement('span');
-                    wrapper.innerHTML = newHTML;
-                    node.replaceWith(...wrapper.childNodes);
                 }
             }
         }
+        console.log(`[Goldfish] Highlighting complete. Total matches: ${totalMatches}`);
+    } catch (error) {
+        console.error("[Goldfish] Critical error in highlighter:", error);
+    } finally {
+        isProcessing = false;
     }
-    console.log("[Goldfish] TreeWalker Highlighting complete.");
 }
 
 function injectGoldfishStyles() {
@@ -123,7 +156,7 @@ function injectGoldfishStyles() {
             font-size: 14px !important;
             width: max-content !important;
             max-width: 280px !important;
-            z-index: 2147483647 !important; /* Max z-index */
+            z-index: 2147483647 !important;
             visibility: hidden;
             opacity: 0;
             transition: opacity 0.1s ease;
@@ -137,23 +170,19 @@ function injectGoldfishStyles() {
         }
     `;
 
-    // Append to head, or body if head isn't ready
     (document.head || document.documentElement).appendChild(style);
-    console.log("[Goldfish] Styles injected into DOM");
+    console.log("[Goldfish] Styles injected");
 }
 
 const init = async () => {
     const siteConfig = getActiveConfig();
+    if (!siteConfig) return;
 
-    // Wait for DOM to be ready just to be sure.
     if (document.readyState === "loading") {
         await new Promise(resolve => {
             document.addEventListener('DOMContentLoaded', resolve);
         });
     }
-
-    // Add a small delay to ensure containers are loaded
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
     await processSiteContent(siteConfig);
 }
@@ -163,26 +192,34 @@ browser.runtime.onMessage.addListener((message: any) => {
     if (message.type === "CONTEXT_MENU_ADD_CHARACTER") {
         console.log("%c[Goldfish] Character to add:", "color: #6495ED; font-weight: bold;", message.text);
         if (currentNovelId) {
-            // Try to get selection coordinates
             let rect: DOMRect | undefined;
             const selection = window.getSelection();
             if (selection && selection.rangeCount > 0) {
-                // We assume the user just clicked right click -> Add Character, 
-                // so the selection should still be the one they clicked.
-                // However, sometimes context menu click might change selection? 
-                // Usually it doesn't unless they left click.
                 try {
                     rect = selection.getRangeAt(0).getBoundingClientRect();
-                } catch (e) {
-                    console.log("Could not get selection rect", e);
-                }
+                } catch (e) {}
             }
-
             showAddCharacterModal(message.text, currentNovelId, rect);
         } else {
-            console.warn("[Goldfish] No novel selected, cannot add character.");
             alert("Please select a novel in the Goldfish extension popup first.");
         }
+    }
+});
+
+// Watch for URL changes (for SPAs like wetriedtls.com)
+setInterval(() => {
+    if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        console.log("[Goldfish] Navigation detected, re-initializing...");
+        init();
+    }
+}, 2000);
+
+// Watch for storage changes (e.g. user selects a different novel in the popup)
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.activeNovelId) {
+        console.log("[Goldfish] Novel changed, refreshing highlights...");
+        init();
     }
 });
 

@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "content_scripts": [
     {
-      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*", "https://webnoveltranslations.com/*"],
+      "matches":[
+        "*://*.wetriedtls.com/*",
+        "*://*.revengernovel.com/*", 
+        "*://*.fenrirealm.com/*", 
+        "*://*.webnoveltranslations.com/*"
+      ],
       "js": ["content.js"]
     }
   ],
@@ -18,5 +23,11 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "contextMenus", "menus"]
+  "permissions": ["storage", "contextMenus", "menus"],
+  "host_permissions": [
+    "*://*.wetriedtls.com/*",
+    "*://*.revengernovel.com/*", 
+    "*://*.fenrirealm.com/*", 
+    "*://*.webnoveltranslations.com/*"
+  ]
 }

@@ -5,7 +5,10 @@ import "./contextMenu";
 console.log("[Goldfish] Background script starting...");
 
 browser.runtime.onMessage.addListener(async (message: any) => {
-    console.log("Background received message:", message);
+    console.log("Background received message:", message.type);
+    if (message.type === 'PING') {
+        return { status: 'pong' };
+    }
     if (message.type === 'GET_CHARACTERS') {
         try {
             const characters = await getCharactersByNovel(message.novelId);
