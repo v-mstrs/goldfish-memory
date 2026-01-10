@@ -30,7 +30,7 @@ async function processSiteContent(siteConfig: any) {
 
     const searchTerms = [];
     for (const char of characters) {
-        let names = [char.name, ...(char.aliases ?? [])];
+        let names = [char.name, ...(char.aliases ?? [])]; // [name1, name2...]
         for (const n of names) {
             const clean = n.trim();
             if (clean) searchTerms.push({ name: clean, desc: char.description, img: char.imageUrl });
