@@ -6,7 +6,6 @@ import browser from "webextension-polyfill";
 console.log("CONTENT SCRIPT LOADED");
 
 async function processSiteContent(siteConfig: any) {
-    // 1. Check storage - MAKE SURE THIS KEY MATCHES YOUR POPUP
     const storage = await browser.storage.local.get('draft');
     const draft = storage.draft as DraftState;
 
@@ -17,7 +16,7 @@ async function processSiteContent(siteConfig: any) {
         return;
     }
 
-    // 2. Get characters
+    // Get characters
     // Content script cannot access IndexedDB directly (wrong origin), so we ask the background script
     const characters = await browser.runtime.sendMessage({ 
         type: 'GET_CHARACTERS', 
@@ -33,7 +32,7 @@ async function processSiteContent(siteConfig: any) {
 
     injectGoldfishStyles();
 
-    // 3. Prepare search terms (Aliases included)
+    // Prepare search terms (Aliases included)
     const searchTerms: { name: string, desc: string, img?: string }[] = [];
     characters.forEach(char => {
         const names = [char.name, ...(char.aliases || [])];
@@ -47,9 +46,6 @@ async function processSiteContent(siteConfig: any) {
             }
         });
     });
-
-    // Sort longest first
-    searchTerms.sort((a, b) => b.name.length - a.name.length);
 
     let html = container.innerHTML;
 
@@ -136,11 +132,6 @@ injectGoldfishStyles();
 
 const init = async () => {
     const siteConfig = getActiveConfig();
-
-    if (!siteConfig) {
-        console.log("SITE NOT IN SITES.TS")
-        return;
-    }
 
     // Wait for DOM to be ready just to be sure.
     if (document.readyState === "loading") {

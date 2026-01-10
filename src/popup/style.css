@@ -6,10 +6,10 @@ html {
 
 body {
     width: 350px;
-    min-height: 600px;
+    height: 550px;
     margin: 0;
     padding: 0;
-    background-color: #1a1a1a;
+    background-color: #242424;
 
     box-sizing: border-box;
 }
@@ -178,21 +178,6 @@ select:focus {
     padding: 8px 10px;
     border-radius: 6px;
     text-align: center;
-
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    will-change: opacity, transform;
-
-    &.show {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    &.hide {
-        opacity: 0;
-        transform: translateY(-4px);
-    }
 }
 
 .hidden {

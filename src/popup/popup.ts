@@ -20,7 +20,7 @@ const UI = {
         img: document.getElementById("charImgUrl") as HTMLInputElement,
         saveBtn: document.getElementById("addCharBtn") as HTMLButtonElement,
     },
-    storage: {
+    storage: { // json 
         importBtn: document.getElementById('importBtn') as HTMLButtonElement,
         exportBtn: document.getElementById('exportBtn') as HTMLButtonElement,
     }
@@ -86,36 +86,17 @@ async function refreshNovelDropdown(selectId?: number) {
     }
 }
 
+let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
 function showNovelToast(title: string) {
-    const toast = UI.novel.toast;
-
-    if (!toast)
-        return;
-
-    toast.textContent = `✔ Novel "${title}" added`;
-
-    toast.classList.remove('hidden', 'hide', 'show');
-
-    // Force a tiny reflow so the browser notices the classes were removed
-    void toast.offsetWidth;
-
-    toast.classList.add('show');
-
-    // Hide logic
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toast.classList.add('hide');
-
-        setTimeout(() => {
-            toast.classList.add('hidden');
-        }, 250);
-    }, 1600);
+    showStatus(`✔ Novel "${title}" added`, 'success');
 }
 
 async function handleSaveNovel() {
     const title = UI.novel.name.value.trim();
 
     if (!title)
+        showStatus("Novel title required", "error");
         return;
 
     try {
@@ -146,16 +127,16 @@ async function handleSaveCharacter() {
         .filter(Boolean);
 
     if (isNaN(novelId)) {
-        alert("Select a novel first!");
+        showStatus("Select a novel first!", "error");
         return;
     }
     if (!name) {
-        alert("Name is required");
+        showStatus("Name is required", "error");
         return;
     }
 
     if (!desc) {
-        alert("Description is required");
+        showStatus("Description is required", "error");
         return;
     }
 
@@ -191,6 +172,33 @@ async function handleSaveCharacter() {
     }
 }
 
+function showStatus(message: string, type: 'success' | 'error' = 'success') {
+    const toast = UI.novel.toast;
+    if (!toast) return;
+
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+
+    // Change color based on error or success
+    if (type === 'error') {
+        toast.style.background = "#441a1a"; // Dark red
+        toast.style.borderColor = "#ff5f5f"; // Bright red border
+        toast.style.color = "#ffbaba";
+    } else {
+        toast.style.background = "#1f3d2b"; // Your original green
+        toast.style.borderColor = "#28a745";
+        toast.style.color = "#8ff0b0";
+    }
+
+    toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+        toastTimeout = null;
+    }, 1500);
+}
 
 const init = async () => {
     console.log("%c GOLDFISH-MEMORY LOADED ", "background: #222; color: #bada55; font-size: 20px;");
