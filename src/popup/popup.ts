@@ -1,7 +1,6 @@
 import { addNovel, getAllNovels, addCharacter, exportDatabase } from '../db/crud';
-import { type DraftMode, type DraftState } from '../types'
+import { type DraftMode, type DraftState } from '../types';
 import browser from "webextension-polyfill";
-
 
 const UI = {
     novel: {
@@ -9,8 +8,8 @@ const UI = {
         name: document.getElementById('newNovel') as HTMLInputElement,
         saveBtn: document.getElementById('saveNovelBtn') as HTMLButtonElement,
         toggleBtn: document.getElementById('toggleNovelDrawer') as HTMLButtonElement,
-        toast: document.getElementById('novelToast'),
-        arrow: document.getElementById('arrow'),
+        toast: document.getElementById('novelToast') as HTMLDivElement,
+        arrow: document.getElementById('arrow') as HTMLSpanElement,
         drawer: document.getElementById('novelAddDrawer') as HTMLDivElement,
     },
     char: {
@@ -20,12 +19,16 @@ const UI = {
         img: document.getElementById("charImgUrl") as HTMLInputElement,
         saveBtn: document.getElementById("addCharBtn") as HTMLButtonElement,
     },
-    storage: { // json 
-        importBtn: document.getElementById('importBtn') as HTMLButtonElement,
+    storage: {
         exportBtn: document.getElementById('exportBtn') as HTMLButtonElement,
     }
 };
 
+let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Persists or loads the current form state to/from local storage.
+ */
 async function syncDraft(mode: DraftMode) {
     if (mode === 'save') {
         const state = {
@@ -34,23 +37,15 @@ async function syncDraft(mode: DraftMode) {
             charDesc: UI.char.desc.value,
             charImg: UI.char.img.value
         };
-        // Save novel selection separately so it's persistent
         await browser.storage.local.set({ 
             draft: state,
             activeNovelId: UI.novel.select.value 
         });
-        return;
-    }
-
-    if (mode === 'load') {
+    } else {
         const data = await browser.storage.local.get(['draft', 'activeNovelId']);
-        const s = data?.draft as DraftState;
-        const activeNovelId = data?.activeNovelId as string;
-
-        if (activeNovelId) {
-            UI.novel.select.value = activeNovelId;
-        }
-
+        const s = data.draft as DraftState;
+        
+        if (data.activeNovelId) UI.novel.select.value = data.activeNovelId as string;
         if (s) {
             UI.char.name.value = s.charName || "";
             UI.char.aliases.value = s.charAliases || "";
@@ -60,204 +55,121 @@ async function syncDraft(mode: DraftMode) {
     }
 }
 
+/**
+ * Toggles the "Add New Novel" drawer.
+ */
 const toggleDrawer = (forceState?: boolean) => {
     const isHidden = UI.novel.drawer.classList.toggle('hidden', forceState);
-
-    // ONLY update the text of the ARROW span, not the whole drawer!
-    if (UI.novel.arrow) {
-        UI.novel.arrow.textContent = isHidden ? '▼' : '▲';
-    }
-
-    if (!isHidden) {
-        UI.novel.name.focus();
-    }
+    if (UI.novel.arrow) UI.novel.arrow.textContent = isHidden ? '▼' : '▲';
+    if (!isHidden) UI.novel.name.focus();
 };
 
-// Data Syncing
-async function refreshNovelDropdown(selectId?: number) {
-    // Optimization: Use a DocumentFragment to minimize reflows
-    const fragment = document.createDocumentFragment();
-    const novels = await getAllNovels();
+/**
+ * Displays a temporary status message (toast).
+ */
+function showStatus(message: string, type: 'success' | 'error' = 'success') {
+    if (!UI.novel.toast) return;
+    if (toastTimeout) clearTimeout(toastTimeout);
 
-    // Keep placeholder (assuming index 0 is placeholder)
-    UI.novel.select.length = 1;
+    UI.novel.toast.textContent = message;
+    UI.novel.toast.classList.remove('hidden');
+    
+    const isError = type === 'error';
+    UI.novel.toast.style.background = isError ? "#441a1a" : "#1f3d2b";
+    UI.novel.toast.style.borderColor = isError ? "#ff5f5f" : "#28a745";
+    UI.novel.toast.style.color = isError ? "#ffbaba" : "#8ff0b0";
+
+    toastTimeout = setTimeout(() => UI.novel.toast.classList.add('hidden'), 2000);
+}
+
+/**
+ * Refreshes the list of novels in the dropdown.
+ */
+async function refreshNovelDropdown(selectId?: number) {
+    const novels = await getAllNovels();
+    UI.novel.select.length = 1; // Keep placeholder
 
     novels.forEach(novel => {
-        const option = new Option(novel.title, novel.id!.toString());
-        fragment.appendChild(option);
+        UI.novel.select.appendChild(new Option(novel.title, novel.id!.toString()));
     });
 
-    UI.novel.select.appendChild(fragment);
-
-    if (selectId) {
-        UI.novel.select.value = selectId.toString();
-    }
+    if (selectId) UI.novel.select.value = selectId.toString();
 }
 
-let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function showNovelToast(title: string) {
-    showStatus(`✔ Novel "${title}" added`, 'success');
-}
-
+/**
+ * Saves a new novel to the database.
+ */
 async function handleSaveNovel() {
     const title = UI.novel.name.value.trim();
-
-    if (!title) {
-        showStatus("Novel title required", "error");
-        return;
-    }
+    if (!title) return showStatus("Novel title required", "error");
 
     try {
         UI.novel.saveBtn.disabled = true;
-
         const newId = await addNovel(title);
         UI.novel.name.value = '';
         toggleDrawer(true);
         await refreshNovelDropdown(newId);
-        showNovelToast(title);
-        console.log(`Saved novel: ${title}`)
+        showStatus(`✔ Novel added`);
     } catch (err) {
-        console.error("Failed to save novel:", err);
-        alert("Error saving novel.");
+        showStatus("Error saving novel", "error");
     } finally {
         UI.novel.saveBtn.disabled = false;
     }
 }
 
+/**
+ * Saves a new character to the database.
+ */
 async function handleSaveCharacter() {
     const novelId = parseInt(UI.novel.select.value);
     const name = UI.char.name.value.trim();
     const desc = UI.char.desc.value.trim();
     const img = UI.char.img.value.trim();
-    const aliases = UI.char.aliases.value
-        .split(',')
-        .map(a => a.replace(/\s+/g, ' ').trim())
-        .filter(Boolean);
+    const aliases = UI.char.aliases.value.split(',').map(a => a.trim()).filter(Boolean);
 
-    if (isNaN(novelId)) {
-        showStatus("Select a novel first!", "error");
-        return;
-    }
-    if (!name) {
-        showStatus("Name is required", "error");
-        return;
-    }
-
-    if (!desc) {
-        showStatus("Description is required", "error");
-        return;
-    }
+    if (isNaN(novelId)) return showStatus("Select a novel first!", "error");
+    if (!name || !desc) return showStatus("Name and Description required", "error");
 
     try {
         UI.char.saveBtn.disabled = true;
         await addCharacter(novelId, name, aliases, desc, img);
 
-        // --- SUCCESS FEEDBACK ---
         const originalText = UI.char.saveBtn.textContent;
-        const originalBg = UI.char.saveBtn.style.backgroundColor;
-
         UI.char.saveBtn.textContent = "✓ Saved!";
-        UI.char.saveBtn.style.backgroundColor = "#2e7d32";
+        UI.char.saveBtn.classList.add('success-state'); // Assuming CSS handles color
 
-        // Reset the form
-        UI.char.name.value = '';
-        UI.char.aliases.value = '';
-        UI.char.desc.value = '';
-        UI.char.img.value = '';
+        // Reset form
+        [UI.char.name, UI.char.aliases, UI.char.desc, UI.char.img].forEach(i => i.value = '');
+        await browser.storage.local.remove('draft');
 
-        // revert button after 2 seconds
         setTimeout(() => {
             UI.char.saveBtn.textContent = originalText;
-            UI.char.saveBtn.style.backgroundColor = originalBg;
+            UI.char.saveBtn.classList.remove('success-state');
             UI.char.saveBtn.disabled = false;
         }, 2000);
-        
-        return true;
     } catch (err) {
-        console.error("Failed to save character:", err);
+        showStatus("Failed to save character", "error");
         UI.char.saveBtn.disabled = false;
-        return false;
     }
-}
-
-function showStatus(message: string, type: 'success' | 'error' = 'success') {
-    const toast = UI.novel.toast;
-    if (!toast) return;
-
-    if (toastTimeout) {
-        clearTimeout(toastTimeout);
-    }
-
-    toast.textContent = message;
-    toast.classList.remove('hidden');
-
-    // Change color based on error or success
-    if (type === 'error') {
-        toast.style.background = "#441a1a"; // Dark red
-        toast.style.borderColor = "#ff5f5f"; // Bright red border
-        toast.style.color = "#ffbaba";
-    } else {
-        toast.style.background = "#1f3d2b"; // Your original green
-        toast.style.borderColor = "#28a745";
-        toast.style.color = "#8ff0b0";
-    }
-
-    toastTimeout = setTimeout(() => {
-        toast.classList.add('hidden');
-        toastTimeout = null;
-    }, 1500);
 }
 
 const init = async () => {
-    console.log("%c GOLDFISH-MEMORY LOADED ", "background: #222; color: #bada55; font-size: 20px;");
-
     await refreshNovelDropdown();
     await syncDraft("load");
 
-    // draft Persistence (Save as you type)
-    const inputs = [
-        UI.char.name,
-        UI.char.aliases,
-        UI.char.desc,
-        UI.char.img,
-        UI.novel.select
-    ];
-
-    inputs.forEach(el => {
-        const eventType = el instanceof HTMLSelectElement ? 'change' : 'input';
-        el.addEventListener(eventType, () => syncDraft("save"));
+    // Persist as you type
+    [UI.char.name, UI.char.aliases, UI.char.desc, UI.char.img, UI.novel.select].forEach(el => {
+        el.addEventListener(el instanceof HTMLSelectElement ? 'change' : 'input', () => syncDraft("save"));
     });
 
-    const onSaveSuccess = async () => {
-        console.log("Save initiated...");
-        try {
-            const success = await handleSaveCharacter();
-            if (success) {
-                // If handleSaveCharacter succeeds, then we clear the draft
-                console.log("Save function finished, now clearing draft...");
-                await browser.storage.local.remove('draft');
-            }
-        } catch (err) {
-            console.error("CRITICAL ERROR IN onSaveSuccess:", err);
-        }
-    };
+    UI.novel.saveBtn.onclick = handleSaveNovel;
+    UI.char.saveBtn.onclick = handleSaveCharacter;
+    UI.novel.toggleBtn.onclick = () => toggleDrawer();
+    UI.storage.exportBtn.onclick = exportDatabase;
 
-    UI.novel.saveBtn?.addEventListener('click', handleSaveNovel);
-    UI.novel.name?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') handleSaveNovel();
-    });
-
-    UI.char.saveBtn?.addEventListener('click', onSaveSuccess);
-    UI.char.name?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') onSaveSuccess();
-    });
-
-    UI.novel.toggleBtn?.addEventListener('click', () => toggleDrawer());
-    UI.storage.exportBtn?.addEventListener('click', async () => {
-        await exportDatabase();
-        console.log("Database exported successfully");
-    });
+    // Enter key support
+    UI.novel.name.onkeydown = (e) => e.key === 'Enter' && handleSaveNovel();
+    UI.char.name.onkeydown = (e) => e.key === 'Enter' && handleSaveCharacter();
 };
 
 document.addEventListener('DOMContentLoaded', init);
