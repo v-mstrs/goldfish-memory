@@ -9,73 +9,77 @@ async function processSiteContent(siteConfig: any) {
     const storage = await browser.storage.local.get('draft');
     const draft = storage.draft as DraftState;
 
-    console.log(`draft selectedNovel is: ${draft.selectedNovel}`)
+    if (!draft?.selectedNovel) return;
 
-    if (!draft?.selectedNovel) {
-        console.log("[Goldfish] No novel selected in storage 'draft'");
-        return;
-    }
-
-    // Get characters
-    // Content script cannot access IndexedDB directly (wrong origin), so we ask the background script
     const characters = await browser.runtime.sendMessage({ 
         type: 'GET_CHARACTERS', 
         novelId: parseInt(draft.selectedNovel) 
     }) as Character[];
-    console.log("Characters found:", characters.length)
-    const container = document.querySelector(siteConfig.contentSelector) as HTMLElement;
 
-    if (!container) {
-        console.log("[Goldfish] Container not found:", siteConfig.contentSelector);
-        return;
-    }
+    const container = document.querySelector(siteConfig.contentSelector) as HTMLElement;
+    if (!container) return;
 
     injectGoldfishStyles();
 
-    // Prepare search terms (Aliases included)
-    const searchTerms: { name: string, desc: string, img?: string }[] = [];
-    characters.forEach(char => {
-        const names = [char.name, ...(char.aliases || [])];
-        names.forEach(n => {
-            if (n.trim()) {
-                searchTerms.push({
-                    name: n.trim(),
-                    desc: char.description,
-                    img: char.imageUrl
-                });
-            }
-        });
-    });
-
-    let html = container.innerHTML;
-
-    searchTerms.forEach(({ name, desc, img }) => {
-        // ESCAPE the name so special chars don't break regex
-        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-        // THE FIX: The second half of this regex prevents highlighting 
-        // if the word is already inside a goldfish span/tooltip.
-        const regex = new RegExp(`\\b(${escaped})\\b(?![^<]*>)(?![^<]*class="goldfish-)`, 'gi');
-
-        if (regex.test(html)) {
-            const imgTag = (img && img.trim() !== "")
-                ? `<img src="${img}" alt="${name}">`
-                : "";
-
-            const tooltipHtml = `
-                <span class="goldfish-tooltip">
-                    ${imgTag}
-                    <span class="goldfish-tooltip-text">${desc}</span>
-                </span>
-            `.replace(/\s+/g, ' ').trim();
-
-            // Replace only if not already wrapped
-            html = html.replace(regex, `<span class="goldfish-highlight">$1${tooltipHtml}</span>`);
+    const searchTerms = [];
+    for (const char of characters) {
+        let names = [char.name, ...(char.aliases ?? [])];
+        for (const n of names) {
+            const clean = n.trim();
+            if (clean) searchTerms.push({ name: clean, desc: char.description, img: char.imageUrl });
         }
-    });
+    }
 
-    container.innerHTML = html;
-    console.log("[Goldfish] Highlighting complete.");
+    // 2. Setup the TreeWalker to find all Text Nodes
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    let currentNode: Node | null;
+    const textNodes: Text[] = [];
+
+    // We collect them into a list first so we don't get lost while modifying the DOM
+    while (currentNode = walker.nextNode()) {
+        textNodes.push(currentNode as Text);
+    }
+
+    const HIGHLIGHT_LIMIT = 5;
+
+    // 3. For every character name, search the text nodes
+    for (const term of searchTerms) {
+        let count = 0;
+        const escaped = term.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b(${escaped})\\b`, 'gi');
+
+        for (const node of textNodes) {
+            if (count >= HIGHLIGHT_LIMIT) // Stop if we hit 5 for this name
+                break; 
+
+            const parent = node.parentElement;
+            // Safety: Don't highlight if we already did or if it's a script/style
+            if (!parent || parent.classList.contains('goldfish-highlight') || 
+                parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') continue;
+
+            const text = node.nodeValue || "";
+            if (regex.test(text)) {
+                // Re-run match to get the specific text
+                const newHTML = text.replace(regex, (match) => {
+                    if (count < HIGHLIGHT_LIMIT) {
+                        count++;
+                        let imgTag = term.img ? `<img src="${term.img}">` : "";
+                        const tooltip = `<span class="goldfish-tooltip">${imgTag}<span class="goldfish-tooltip-text">${term.desc}</span></span>`;
+                        return `<span class="goldfish-highlight">${match}${tooltip}</span>`;
+                    }
+                    return match;
+                });
+
+                // If we actually changed something, update the DOM
+                if (newHTML !== text) {
+                    const wrapper = document.createElement('span');
+                    wrapper.innerHTML = newHTML;
+                    node.replaceWith(...wrapper.childNodes);
+                }
+            }
+        }
+    }
+    console.log("[Goldfish] TreeWalker Highlighting complete.");
 }
 
 function injectGoldfishStyles() {
@@ -126,9 +130,6 @@ function injectGoldfishStyles() {
     (document.head || document.documentElement).appendChild(style);
     console.log("[Goldfish] Styles injected into DOM");
 }
-
-// Call it at the start of your content script logic
-injectGoldfishStyles();
 
 const init = async () => {
     const siteConfig = getActiveConfig();
