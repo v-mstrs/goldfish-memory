@@ -9,7 +9,10 @@ async function processSiteContent(siteConfig: any) {
     const storage = await browser.storage.local.get('draft');
     const draft = storage.draft as DraftState;
 
-    if (!draft?.selectedNovel) return;
+    if (!draft?.selectedNovel) {
+        console.log("[Goldfish] No selected novel");
+        return;
+    }
 
     const characters = await browser.runtime.sendMessage({ 
         type: 'GET_CHARACTERS', 
@@ -17,7 +20,11 @@ async function processSiteContent(siteConfig: any) {
     }) as Character[];
 
     const container = document.querySelector(siteConfig.contentSelector) as HTMLElement;
-    if (!container) return;
+
+    if (!container) {
+        console.log(`[Goldfish] no container ${container}`);
+        return;
+    }
 
     injectGoldfishStyles();
 
@@ -30,7 +37,6 @@ async function processSiteContent(siteConfig: any) {
         }
     }
 
-    // 2. Setup the TreeWalker to find all Text Nodes
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
     let currentNode: Node | null;
     const textNodes: Text[] = [];
@@ -42,7 +48,7 @@ async function processSiteContent(siteConfig: any) {
 
     const HIGHLIGHT_LIMIT = 5;
 
-    // 3. For every character name, search the text nodes
+    // For every character name, search the text nodes
     for (const term of searchTerms) {
         let count = 0;
         const escaped = term.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
