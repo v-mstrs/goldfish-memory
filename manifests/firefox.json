@@ -29,8 +29,7 @@
   },
   "permissions": [
     "storage",
-    "contextMenus",
-    "menus"
+    "contextMenus"
   ],
   "host_permissions": [
     "*://*.wetriedtls.com/*",

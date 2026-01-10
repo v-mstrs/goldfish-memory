@@ -17,11 +17,7 @@ function initContextMenu() {
                 id: MENU_ID,
                 title: "Add Character",
                 contexts: ["selection"],
-                documentUrlPatterns: MATCH_PATTERNS,
-                icons: {
-                    "16": "/assets/goldfish-white.png",
-                    "32": "/assets/goldfish-white.png"
-                }
+                documentUrlPatterns: MATCH_PATTERNS
             });
         }).catch(err => console.error("[Goldfish] Context menu setup failed:", err));
     });
