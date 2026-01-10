@@ -4,17 +4,34 @@
   "version": "0.1.0",
   "content_scripts": [
     {
-      "matches":["https://wetriedtls.com/*","https://revengernovel.com/*", "https://fenrirealm.com/*", "https://webnoveltranslations.com/*"],
-      "js": ["content.js"]
+      "matches": [
+        "https://wetriedtls.com/*",
+        "https://revengernovel.com/*",
+        "https://fenrirealm.com/*",
+        "https://webnoveltranslations.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {
-    "default_popup": "index.html" 
+    "default_popup": "index.html"
   },
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
-  "permissions": ["storage", "contextMenus", "menus"],
+  "icons": {
+    "48": "assets/goldfish-white.png",
+    "128": "assets/goldfish-white.png"
+  },
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "menus"
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "goldfish-db@yourproject.com",

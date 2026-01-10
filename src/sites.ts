@@ -17,7 +17,7 @@ export const SITES = [
   }
 ] as const;
 
-//export const MATCH_PATTERNS = SITES.map(s => `https://${s.hostname}/*`);
+export const MATCH_PATTERNS = SITES.map(s => `https://${s.hostname}/*`);
 
 export const getActiveConfig = () =>
   SITES.find(s => window.location.hostname.includes(s.hostname));

@@ -1,4 +1,5 @@
 import browser from "webextension-polyfill";
+import { MATCH_PATTERNS } from "./sites";
 
 console.log("Context menu script loading...");
 
@@ -16,8 +17,13 @@ try {
                     id: "add-character",
                     title: "Add Character",
                     contexts: ["selection"],
+                    documentUrlPatterns: MATCH_PATTERNS,
+                    icons: {
+                        "16": "/assets/goldfish-white.png",
+                        "32": "/assets/goldfish-white.png"
+                    }
                 });
-                console.log("Context menu item created.");
+                console.log("Context menu item created for patterns:", MATCH_PATTERNS);
             }).catch((err) => {
                 console.error("Error creating context menu:", err);
             });
