@@ -1,5 +1,6 @@
+/* --- Global Styles --- */
 html {
-    font-family: Calibri;
+    font-family: Calibri, sans-serif;
     overflow-x: hidden;
     scrollbar-width: thin;
 }
@@ -10,7 +11,6 @@ body {
     margin: 0;
     padding: 0;
     background-color: #242424;
-
     box-sizing: border-box;
 }
 
@@ -19,7 +19,6 @@ body {
     flex-direction: column;
     gap: 12px;
     padding: 20px;
-    background-color: #242424;
     color: white;
     position: relative;
 
@@ -28,16 +27,6 @@ body {
         font-weight: 600;
         color: #ffffff;
         margin: 0;
-    }
-
-    #addCharBtn {
-        background-color: #007acc;
-        font-weight: 600;
-        margin-top: 5px;
-
-        &:hover {
-            background-color: #008be5;
-        }
     }
 
     button {
@@ -57,6 +46,20 @@ body {
 
         &:active {
             transform: translateY(1px);
+        }
+
+        &.success-state {
+            background-color: #2e7d32 !important;
+        }
+    }
+
+    #addCharBtn {
+        background-color: #007acc;
+        font-weight: 600;
+        margin-top: 5px;
+
+        &:hover {
+            background-color: #008be5;
         }
     }
 
@@ -80,13 +83,9 @@ body {
             }
         }
     }
-    #charImgUrl {
-        color: #aaa;
-        border-style: dashed;
-
-    }
 }
 
+/* --- Form Elements --- */
 input,
 textarea,
 select {
@@ -100,15 +99,26 @@ select {
     transition: border-color 0.2s;
     font-family: inherit;
     font-size: 14px;
+
+    &:focus {
+        outline: none;
+        border-color: #007acc;
+    }
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-    outline: none;
-    border-color: #007acc;
+#charDesc {
+    height: 80px;
+    resize: none;
 }
 
+#charAliases,
+#charImgUrl {
+    margin-top: -4px;
+    color: #aaa;
+    border-style: dashed;
+}
+
+/* --- Layout Utilities --- */
 .row {
     display: flex;
     gap: 8px;
@@ -117,6 +127,10 @@ select:focus {
 
 .flex-grow {
     flex-grow: 1;
+}
+
+.hidden {
+    display: none !important;
 }
 
 #toggleNovelDrawer {
@@ -130,6 +144,7 @@ select:focus {
     background-color: #3f3f3f;
 }
 
+/* --- Specific Components --- */
 #novelAddDrawer {
     background-color: #2d2d2d;
     padding: 12px;
@@ -138,33 +153,13 @@ select:focus {
     margin-top: -4px;
 }
 
-.hidden {
-    display: none !important;
-}
-
 #arrow {
     display: inline-block;
     transition: transform 0.2s ease;
     font-size: 10px;
-    color: #ffffff;
 }
 
-.arrow-rotated {
-    transform: rotate(180deg);
-}
-
-#charAliases {
-    margin-top: -4px;
-    color: #aaa;
-    border-style: dashed;
-}
-
-#charDesc {
-    height: 80px;
-    resize: none;
-}
-
-
+/* --- Highlighting & Feedback --- */
 .goldfish-highlight {
     border-bottom: 2px dashed #007acc;
     cursor: help;
@@ -178,7 +173,6 @@ select:focus {
     transform: translateX(-50%) translateY(0);
     z-index: 1000;
     width: 80%;
-    
     background: #1f3d2b;
     border: 1px solid #28a745;
     color: #8ff0b0;
@@ -187,20 +181,14 @@ select:focus {
     border-radius: 6px;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-
     opacity: 1;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s, transform 0.3s;
     pointer-events: auto;
-}
 
-.toast.hidden {
-    display: block !important;
-    opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
-    pointer-events: none;
-}
-
-.hidden {
-    display: none !important;
+    &.hidden {
+        display: block !important;
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+        pointer-events: none;
+    }
 }
