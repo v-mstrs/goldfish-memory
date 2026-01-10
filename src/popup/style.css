@@ -21,6 +21,7 @@ body {
     padding: 20px;
     background-color: #242424;
     color: white;
+    position: relative;
 
     h1 {
         font-size: 20px;
@@ -171,6 +172,13 @@ select:focus {
 }
 
 .toast {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    z-index: 1000;
+    width: 80%;
+    
     background: #1f3d2b;
     border: 1px solid #28a745;
     color: #8ff0b0;
@@ -178,6 +186,19 @@ select:focus {
     padding: 8px 10px;
     border-radius: 6px;
     text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+
+    opacity: 1;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+}
+
+.toast.hidden {
+    display: block !important;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+    pointer-events: none;
 }
 
 .hidden {
