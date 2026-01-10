@@ -13,7 +13,7 @@ export const SITES = [
   },
   {
     hostname: 'webnoveltranslations.com',
-    contentSelector: ('.novel-chapter-container')
+    contentSelector: ('#novel-chapter-container')
   }
 ] as const;
 
