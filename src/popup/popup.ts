@@ -29,21 +29,29 @@ const UI = {
 async function syncDraft(mode: DraftMode) {
     if (mode === 'save') {
         const state = {
-            selectedNovel: UI.novel.select.value,
             charName: UI.char.name.value,
             charAliases: UI.char.aliases.value,
             charDesc: UI.char.desc.value,
             charImg: UI.char.img.value
         };
-        return browser.storage.local.set({ draft: state });
+        // Save novel selection separately so it's persistent
+        await browser.storage.local.set({ 
+            draft: state,
+            activeNovelId: UI.novel.select.value 
+        });
+        return;
     }
 
     if (mode === 'load') {
-        const data = await browser.storage.local.get('draft');
-        const s = data?.draft as DraftState
+        const data = await browser.storage.local.get(['draft', 'activeNovelId']);
+        const s = data?.draft as DraftState;
+        const activeNovelId = data?.activeNovelId as string;
+
+        if (activeNovelId) {
+            UI.novel.select.value = activeNovelId;
+        }
 
         if (s) {
-            UI.novel.select.value = s.selectedNovel || "";
             UI.char.name.value = s.charName || "";
             UI.char.aliases.value = s.charAliases || "";
             UI.char.desc.value = s.charDesc || "";
