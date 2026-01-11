@@ -168,12 +168,12 @@ const init = async () => {
     UI.storage.exportBtn.onclick = exportDatabase;
 
     // Enter key support
-    UI.novel.name.onkeydown = (e) => {
+    UI.novel.name.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleSaveNovel();
-    }
-    UI.char.name.onkeydown = (e) => {
+    });
+    UI.char.name.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleSaveCharacter();
-    }
+    });
 };
 
 document.addEventListener('DOMContentLoaded', init);
