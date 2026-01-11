@@ -7,8 +7,7 @@
       "matches":[
         "*://*.wetriedtls.com/*",
         "*://*.revengernovel.com/*", 
-        "*://*.fenrirealm.com/*", 
-        "*://*.webnoveltranslations.com/*"
+        "*://*.fenrirealm.com/*"
       ],
       "js": ["content.js"]
     }
@@ -27,7 +26,6 @@
   "host_permissions": [
     "*://*.wetriedtls.com/*",
     "*://*.revengernovel.com/*", 
-    "*://*.fenrirealm.com/*", 
-    "*://*.webnoveltranslations.com/*"
+    "*://*.fenrirealm.com/*" 
   ]
 }
