@@ -37,14 +37,14 @@ async function syncDraft(mode: DraftMode) {
             charDesc: UI.char.desc.value,
             charImg: UI.char.img.value
         };
-        await browser.storage.local.set({ 
+        await browser.storage.local.set({
             draft: state,
-            activeNovelId: UI.novel.select.value 
+            activeNovelId: UI.novel.select.value
         });
     } else {
         const data = await browser.storage.local.get(['draft', 'activeNovelId']);
         const s = data.draft as DraftState;
-        
+
         if (data.activeNovelId) UI.novel.select.value = data.activeNovelId as string;
         if (s) {
             UI.char.name.value = s.charName || "";
@@ -73,7 +73,7 @@ function showStatus(message: string, type: 'success' | 'error' = 'success') {
 
     UI.novel.toast.textContent = message;
     UI.novel.toast.classList.remove('hidden');
-    
+
     const isError = type === 'error';
     UI.novel.toast.style.background = isError ? "#441a1a" : "#1f3d2b";
     UI.novel.toast.style.borderColor = isError ? "#ff5f5f" : "#28a745";
@@ -168,8 +168,12 @@ const init = async () => {
     UI.storage.exportBtn.onclick = exportDatabase;
 
     // Enter key support
-    UI.novel.name.onkeydown = (e) => e.key === 'Enter' && handleSaveNovel();
-    UI.char.name.onkeydown = (e) => e.key === 'Enter' && handleSaveCharacter();
+    UI.novel.name.onkeydown = (e) => {
+        if (e.key === 'Enter') handleSaveNovel();
+    }
+    UI.char.name.onkeydown = (e) => {
+        if (e.key === 'Enter') handleSaveCharacter();
+    }
 };
 
 document.addEventListener('DOMContentLoaded', init);
