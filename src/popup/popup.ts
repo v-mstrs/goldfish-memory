@@ -1,4 +1,4 @@
-import { addNovel, getAllNovels, addCharacter, exportDatabase } from '../db/crud';
+import { addNovel, getAllNovels, addCharacter, exportDatabase, importDatabase } from '../db/crud';
 import { type DraftMode, type DraftState } from '../types';
 import browser from "webextension-polyfill";
 
@@ -21,6 +21,7 @@ const UI = {
     },
     storage: {
         exportBtn: document.getElementById('exportBtn') as HTMLButtonElement,
+        importBtn: document.getElementById('importBtn') as HTMLButtonElement,
     },
     logo: {
         img: document.getElementById('rescanPage') as HTMLImageElement
@@ -169,6 +170,44 @@ const init = async () => {
     UI.char.saveBtn.onclick = handleSaveCharacter;
     UI.novel.toggleBtn.onclick = () => toggleDrawer();
     UI.storage.exportBtn.onclick = exportDatabase;
+    UI.storage.importBtn.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                console.log("[Popup] File read complete, parsing JSON...");
+                const json = JSON.parse(text);
+                
+                // Validate basic structure
+                if (!json.data || !Array.isArray(json.data.novels) || !Array.isArray(json.data.characters)) {
+                    console.error("[Popup] Invalid format:", json);
+                    throw new Error("Invalid backup file format");
+                }
+                
+                if (confirm("This will overwrite your current database. Continue?")) {
+                    console.log("[Popup] User confirmed overwrite, calling importDatabase...");
+                    await importDatabase(json.data);
+                    showStatus("✔ Database imported!");
+                    
+                    // Force UI refresh
+                    await refreshNovelDropdown();
+                    UI.novel.select.value = "";
+                    await browser.storage.local.remove(['draft', 'activeNovelId']);
+                    await syncDraft("load"); 
+                    console.log("[Popup] Import and refresh complete.");
+                }
+            } catch (err) {
+                console.error("[Popup] Import error:", err);
+                showStatus("Import failed", "error");
+            }
+        };
+        input.click();
+    };
 
     // Enter key support
     UI.novel.name.addEventListener('keydown', (e) => {

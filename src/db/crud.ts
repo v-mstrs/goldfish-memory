@@ -55,3 +55,15 @@ export async function exportDatabase() {
         console.error("Export failed:", error);
     }
 }
+
+export async function importDatabase(data: { novels: any[], characters: any[] }) {
+    await db.transaction('rw', db.novels, db.characters, async () => {
+        await Promise.all([
+            db.novels.clear(),
+            db.characters.clear()
+        ]);
+
+        if (data.novels?.length) await db.novels.bulkAdd(data.novels);
+        if (data.characters?.length) await db.characters.bulkAdd(data.characters);
+    });
+}
