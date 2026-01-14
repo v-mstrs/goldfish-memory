@@ -135,23 +135,48 @@ function injectGoldfishStyles() {
             bottom: 125% !important;
             left: 50% !important;
             transform: translateX(-50%) !important;
-            background-color: #333 !important;
-            color: #fff !important;
-            padding: 10px !important;
+            background-color: rgba(20, 20, 23, 0.95) !important;
+            color: #f0f0f0 !important;
+            padding: 12px !important;
             border-radius: 8px !important;
             font-size: 14px !important;
+            font-family: sans-serif !important;
+            line-height: 1.4 !important;
             width: max-content !important;
             max-width: 280px !important;
             z-index: 2147483647 !important;
             visibility: hidden;
             opacity: 0;
-            transition: opacity 0.1s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+            transition: opacity 0.2s ease, transform 0.2s ease !important;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
             pointer-events: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            backdrop-filter: blur(4px) !important;
         }
         .goldfish-highlight:hover .goldfish-tooltip {
             visibility: visible !important;
             opacity: 1 !important;
+            transform: translateX(-50%) translateY(-5px) !important;
+        }
+        .goldfish-tooltip.bottom {
+            bottom: auto !important;
+            top: 125% !important;
+        }
+        .goldfish-tooltip img {
+            max-width: 150px !important;
+            max-height: 150px !important;
+            width: auto !important;
+            display: block !important;
+            margin-bottom: 10px !important;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        }
+        .goldfish-tooltip-text {
+            display: block !important;
+            text-align: center !important;
         }
     `;
     (document.head || document.documentElement).appendChild(style);
@@ -189,6 +214,28 @@ browser.runtime.onMessage.addListener((message: any) => {
             try { rect = selection.getRangeAt(0).getBoundingClientRect(); } catch (e) {}
         }
         showAddCharacterModal(message.text, currentNovelId, rect);
+    }
+});
+
+// Smart tooltip positioning
+document.addEventListener('mouseover', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.classList && target.classList.contains('goldfish-highlight')) {
+        const tooltip = target.querySelector('.goldfish-tooltip') as HTMLElement;
+        if (!tooltip) return;
+        
+        const rect = target.getBoundingClientRect();
+        // Reset to default (top) to check measurements
+        tooltip.classList.remove('bottom');
+
+        // Check if tooltip would go off-screen top
+        // Use offsetHeight or a safe default estimate if 0 (e.g., waiting for render)
+        const tooltipHeight = tooltip.offsetHeight || 200; 
+        
+        // If the top of the highlight minus tooltip height is too close to the viewport top
+        if (rect.top - tooltipHeight < 20) {
+            tooltip.classList.add('bottom');
+        }
     }
 });
 
