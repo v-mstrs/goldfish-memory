@@ -21,6 +21,9 @@ const UI = {
     },
     storage: {
         exportBtn: document.getElementById('exportBtn') as HTMLButtonElement,
+    },
+    logo: {
+        img: document.getElementById('rescanPage') as HTMLImageElement
     }
 };
 
@@ -173,6 +176,20 @@ const init = async () => {
     });
     UI.char.name.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleSaveCharacter();
+    });
+    UI.logo.img.addEventListener('click', async () => {
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]?.id) {
+            UI.logo.img.style.transform = "rotate(360deg)";
+            UI.logo.img.style.transition = "transform 0.5s ease";
+            
+            await browser.tabs.sendMessage(tabs[0].id, { type: 'RESCAN_PAGE' });
+            
+            setTimeout(() => {
+                UI.logo.img.style.transform = "none";
+                UI.logo.img.style.transition = "none";
+            }, 500);
+        }
     });
 };
 

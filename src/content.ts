@@ -172,8 +172,12 @@ const init = async () => {
 
 // --- Event Listeners ---
 
-// Listen for Context Menu "Add Character" command
+// Listen for Context Menu "Add Character" command and popup "Rescan" command
 browser.runtime.onMessage.addListener((message: any) => {
+    if (message.type === "RESCAN_PAGE") {
+        init();
+        return;
+    }
     if (message.type === "CONTEXT_MENU_ADD_CHARACTER") {
         if (!currentNovelId) {
             alert("Please select a novel in the Goldfish extension popup first.");
