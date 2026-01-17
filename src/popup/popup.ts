@@ -3,6 +3,9 @@ import { type DraftMode, type DraftState } from '../types';
 import browser from "webextension-polyfill";
 
 const UI = {
+    header: {
+        expandBtn: document.getElementById('expandBtn') as HTMLButtonElement,
+    },
     novel: {
         select: document.getElementById('novelSelect') as HTMLSelectElement,
         name: document.getElementById('newNovel') as HTMLInputElement,
@@ -222,7 +225,11 @@ const init = async () => {
             UI.logo.img.style.transform = "rotate(360deg)";
             UI.logo.img.style.transition = "transform 0.5s ease";
             
-            await browser.tabs.sendMessage(tabs[0].id, { type: 'RESCAN_PAGE' });
+            try {
+                await browser.tabs.sendMessage(tabs[0].id, { type: 'RESCAN_PAGE' });
+            } catch (err) {
+                console.warn("[Popup] Could not rescan page. Content script may not be active.", err);
+            }
             
             setTimeout(() => {
                 UI.logo.img.style.transform = "none";
@@ -230,6 +237,11 @@ const init = async () => {
             }, 500);
         }
     });
+
+    UI.header.expandBtn.onclick = () => {
+        browser.tabs.create({ url: browser.runtime.getURL("index.html") });
+        window.close();
+    };
 };
 
 document.addEventListener('DOMContentLoaded', init);
