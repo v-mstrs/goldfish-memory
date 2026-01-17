@@ -1,4 +1,4 @@
-import { db } from './schema';
+import { db } from "./schema";
 
 export async function addNovel(title: string) {
     return await db.novels.add({ title, createdAt: Date.now() });
@@ -10,13 +10,12 @@ export async function getAllNovels() {
 
 export async function addCharacter(novelId: number, name: string, aliases: string[], description: string, imageUrl: string) {
     const existing = await db.characters
-        .where('novelId').equals(novelId)
+        .where("novelId").equals(novelId)
         .filter(c => c.name.toLowerCase() === name.toLowerCase())
         .first();
 
     if (existing) {
-        console.log("Existing character. Overwriting...")
-        // Update existing with the new image URL
+        // Update existing with the new details
         return await db.characters.update(existing.id!, { aliases, description, imageUrl });
     }
     return await db.characters.add({
@@ -25,7 +24,7 @@ export async function addCharacter(novelId: number, name: string, aliases: strin
 }
 
 export async function getCharactersByNovel(novelId: number) {
-    return await db.characters.where('novelId').equals(novelId).toArray();
+    return await db.characters.where("novelId").equals(novelId).toArray();
 }
 
 export async function exportDatabase() {
@@ -39,12 +38,12 @@ export async function exportDatabase() {
             data: { novels, characters }
         };
 
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.download = `goldfish_backup_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `goldfish_backup_${new Date().toISOString().split("T")[0]}.json`;
         
         document.body.appendChild(link);
         link.click();
@@ -57,7 +56,7 @@ export async function exportDatabase() {
 }
 
 export async function importDatabase(data: { novels: any[], characters: any[] }) {
-    await db.transaction('rw', db.novels, db.characters, async () => {
+    await db.transaction("rw", db.novels, db.characters, async () => {
         await Promise.all([
             db.novels.clear(),
             db.characters.clear()

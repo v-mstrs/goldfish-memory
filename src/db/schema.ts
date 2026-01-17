@@ -1,4 +1,4 @@
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type Table } from "dexie";
 
 export interface Novel {
     id?: number; // Primary Key
@@ -21,10 +21,10 @@ export class GoldfishDB extends Dexie {
     characters!: Table<Character>;
 
     constructor() {
-        super('GoldfishDB');
+        super("GoldfishDB");
         this.version(1).stores({
-            novels: '++id, title',           // Index title for searching
-            characters: '++id, novelId, name' // Index novelId to find novel's cast fast
+            novels: "++id, title",           // Index title for searching
+            characters: "++id, novelId, name" // Index novelId to find novel's cast fast
         });
     }
 }

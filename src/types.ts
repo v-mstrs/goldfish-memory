@@ -6,4 +6,4 @@ export interface DraftState {
     charImg?: string;
 }
 
-export type DraftMode = 'save' | 'load';
+export type DraftMode = "save" | "load";

@@ -19,7 +19,9 @@ function initContextMenu() {
                 contexts: ["selection"],
                 documentUrlPatterns: MATCH_PATTERNS
             });
-        }).catch(err => console.error("[Goldfish] Context menu setup failed:", err));
+        }).catch(() => {
+            // Ignore setup errors
+        });
     });
 
     menusApi.onClicked.addListener((info, tab) => {
@@ -28,7 +30,7 @@ function initContextMenu() {
                 type: "CONTEXT_MENU_ADD_CHARACTER",
                 text: info.selectionText
             }).catch(() => {
-                /* Ignore errors if content script isn't ready */
+                // Ignore errors if content script isn't ready
             });
         }
     });

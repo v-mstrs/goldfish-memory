@@ -3,7 +3,13 @@ html {
     font-family: Calibri, sans-serif;
     overflow-x: hidden;
     scrollbar-width: thin;
-    background-color: #242424; /* Ensure background is dark even outside body in full tab */
+    background-color: #242424;
+
+    /* Expanded View (Full Tab) */
+    @media (min-width: 450px) {
+        background-color: #121212;
+        height: 100%;
+    }
 }
 
 body {
@@ -13,6 +19,16 @@ body {
     padding: 0;
     background-color: #242424;
     box-sizing: border-box;
+
+    /* Expanded View */
+    @media (min-width: 450px) {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: transparent;
+    }
 }
 
 .main {
@@ -24,6 +40,17 @@ body {
     position: relative;
     height: 100%;
     box-sizing: border-box;
+
+    /* Expanded View */
+    @media (min-width: 450px) {
+        width: 450px;
+        height: auto;
+        min-height: 600px;
+        background-color: #242424;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        border: 1px solid #333;
+    }
 }
 
 h1 {
@@ -42,52 +69,71 @@ button {
     font-weight: 500;
     background-color: #3f3f3f;
     color: #ffffff;
-    border-radius: 4px; /* Slight rounding for better look */
+    border-radius: 4px;
     transition: background 0.2s, transform 0.1s;
-}
 
-button:hover {
-    background-color: #4f4f4f;
-}
+    &:hover {
+        background-color: #4f4f4f;
+    }
 
-button:active {
-    transform: translateY(1px);
-}
+    &:active {
+        transform: translateY(1px);
+    }
 
-button.success-state {
-    background-color: #2e7d32 !important;
+    &.success-state {
+        background-color: #2e7d32 !important;
+    }
 }
 
 #addCharBtn {
     background-color: #007acc;
     font-weight: 600;
     margin-top: 5px;
+
+    &:hover {
+        background-color: #008be5;
+    }
 }
 
-#addCharBtn:hover {
-    background-color: #008be5;
+#expandBtn {
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+    }
+
+    /* Hide in expanded view */
+    @media (min-width: 450px) {
+        display: none !important;
+    }
 }
 
 .json {
     display: flex;
     gap: 8px;
-    margin-top: auto; /* Push to bottom if space permits */
+    margin-top: auto;
     border-top: 1px solid #333;
     padding-top: 15px;
-}
 
-.json button {
-    background: transparent;
-    border: 1px solid #3f3f3f;
-    color: #999;
-    font-size: 11px;
-    flex: 1;
-}
+    & button {
+        background: transparent;
+        border: 1px solid #3f3f3f;
+        color: #999;
+        font-size: 11px;
+        flex: 1;
 
-.json button:hover {
-    background: #2d2d2d;
-    color: #fff;
-    border-color: #555;
+        &:hover {
+            background: #2d2d2d;
+            color: #fff;
+            border-color: #555;
+        }
+    }
 }
 
 /* --- Form Elements --- */
@@ -104,13 +150,11 @@ select {
     font-family: inherit;
     font-size: 14px;
     border-radius: 4px;
-}
 
-input:focus,
-textarea:focus,
-select:focus {
-    outline: none;
-    border-color: #007acc;
+    &:focus {
+        outline: none;
+        border-color: #007acc;
+    }
 }
 
 #charDesc {
@@ -166,19 +210,6 @@ select:focus {
     font-size: 10px;
 }
 
-#expandBtn {
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-#expandBtn:hover {
-    background-color: rgba(255,255,255,0.1) !important;
-    color: #fff !important;
-}
-
 /* --- Highlighting & Feedback --- */
 .goldfish-highlight {
     border-bottom: 2px dashed #007acc;
@@ -199,49 +230,16 @@ select:focus {
     font-size: 12px;
     padding: 8px 10px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     opacity: 1;
     transition: opacity 0.3s, transform 0.3s;
     pointer-events: auto;
     border-radius: 4px;
-}
 
-.toast.hidden {
-    display: block !important;
-    opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
-    pointer-events: none;
-}
-
-/* --- Expanded View (Full Tab) --- */
-/* If the window is significantly larger than the popup, we assume full tab mode */
-@media (min-width: 450px) {
-    html {
-        background-color: #121212; /* Darker background for full page */
-        height: 100%;
-    }
-
-    body {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: transparent;
-    }
-
-    .main {
-        width: 450px; /* Slightly wider for comfort */
-        height: auto;
-        min-height: 600px;
-        background-color: #242424;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-        border: 1px solid #333;
-    }
-
-    /* Hide the expand button since we are already expanded */
-    #expandBtn {
-        display: none !important;
+    &.hidden {
+        display: block !important;
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+        pointer-events: none;
     }
 }
