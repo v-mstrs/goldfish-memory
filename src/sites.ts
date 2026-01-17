@@ -9,8 +9,12 @@ export const SITES = [
   },
   {
     hostname: 'fenrirealm.com',
-    contentSelector: ('.content-area')
+    contentSelector: '.content-area'
   },
+  {
+    hostname: 'mavintranslations.com',
+    contentSelector: 'body'
+  }
 ] as const;
 
 export const MATCH_PATTERNS = SITES.map(s => `*://*.${s.hostname}/*`);
