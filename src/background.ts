@@ -10,7 +10,6 @@ browser.runtime.onMessage.addListener(async (message: any) => {
     switch (message.type) {
         case 'PING':
             return { status: 'pong' };
-
         case 'GET_CHARACTERS':
             try {
                 return await getCharactersByNovel(message.novelId);
@@ -18,7 +17,6 @@ browser.runtime.onMessage.addListener(async (message: any) => {
                 console.error("[Goldfish] Error fetching characters:", error);
                 return [];
             }
-
         case 'ADD_CHARACTER':
             try {
                 await addCharacter(
