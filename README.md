@@ -59,3 +59,10 @@ npm run build
 - fenrirealm.com
 - mavintranslations.com
 - *(More can be added in `src/sites.ts`)*
+
+## Showcase
+
+
+
+https://github.com/user-attachments/assets/3ede00bd-ad2d-40b8-92b3-bd6bd8a5f619
+
