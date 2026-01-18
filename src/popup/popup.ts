@@ -4,7 +4,7 @@ import browser from "webextension-polyfill";
 
 const UI = {
     header: {
-        expandBtn: document.getElementById("expandBtn") as HTMLButtonElement,
+        optionsBtn: document.getElementById("optionsBtn") as HTMLButtonElement,
     },
     novel: {
         select: document.getElementById("novelSelect") as HTMLSelectElement,
@@ -236,7 +236,7 @@ const init = async () => {
         }
     });
 
-    UI.header.expandBtn.onclick = () => {
+    UI.header.optionsBtn.onclick = () => {
         browser.tabs.create({ url: browser.runtime.getURL("index.html") });
         window.close();
     };
