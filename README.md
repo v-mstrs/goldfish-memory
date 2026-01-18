@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Goldfish Memory 🐠
+# Goldfish Memory
 
 A browser extension that helps you remember characters in web novels by highlighting their names and showing tooltips with descriptions and images. Supports automatic backups and site-specific configurations.
 
@@ -67,5 +66,3 @@ npm run dev
 - mavintranslations.com
 - *(More can be added in `src/sites.ts`)*
 =======
-
->>>>>>> 6aaaa08a8917c537c5d1b9cfb72a0d38ec50552b
