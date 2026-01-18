@@ -1,7 +1,7 @@
 import { db } from "./schema";
 
 export async function addNovel(title: string) {
-    return await db.novels.add({ title, createdAt: Date.now() });
+    return await db.novels.add({ title: title.trim(), createdAt: Date.now() });
 }
 
 export async function getAllNovels() {
@@ -9,17 +9,36 @@ export async function getAllNovels() {
 }
 
 export async function addCharacter(novelId: number, name: string, aliases: string[], description: string, imageUrl: string) {
+    const cleanName = name.trim();
+    const cleanAliases = aliases.map(a => a.trim()).filter(Boolean);
+    const cleanDesc = description.trim();
+    const cleanImg = imageUrl.trim();
+
+    // Check for existing character by name (case-insensitive & whitespace-insensitive)
     const existing = await db.characters
         .where("novelId").equals(novelId)
-        .filter(c => c.name.toLowerCase() === name.toLowerCase())
+        .filter(c => c.name.trim().toLowerCase() === cleanName.toLowerCase())
         .first();
 
     if (existing) {
-        // Update existing with the new details
-        return await db.characters.update(existing.id!, { aliases, description, imageUrl });
+        console.log(`[Goldfish] Updating existing character: ${cleanName}`);
+        // Update existing with new details. 
+        // We also update 'name' to 'cleanName' to fix any "Encrid " vs "Encrid" storage issues.
+        return await db.characters.update(existing.id!, { 
+            name: cleanName,
+            aliases: cleanAliases, 
+            description: cleanDesc, 
+            imageUrl: cleanImg 
+        });
     }
+
     return await db.characters.add({
-        novelId, name, aliases, description, imageUrl, createdAt: Date.now()
+        novelId, 
+        name: cleanName, 
+        aliases: cleanAliases, 
+        description: cleanDesc, 
+        imageUrl: cleanImg, 
+        createdAt: Date.now()
     });
 }
 
