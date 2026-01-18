@@ -59,4 +59,3 @@ npm run build
 - fenrirealm.com
 - mavintranslations.com
 - *(More can be added in `src/sites.ts`)*
-=======
