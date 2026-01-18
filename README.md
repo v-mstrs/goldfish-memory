@@ -29,12 +29,6 @@ To build the extension for production (creates `dist-chrome` and `dist-firefox` 
 npm run build
 ```
 
-For development (hot module replacement not fully supported for content scripts, rebuild recommended on changes):
-
-```bash
-npm run dev
-```
-
 ## How to Run
 
 ### Google Chrome / Edge / Brave
