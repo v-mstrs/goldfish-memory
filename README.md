@@ -1,6 +1,8 @@
 # Goldfish Memory
 
 A browser extension that helps you remember characters in web novels by highlighting their names and showing tooltips with descriptions and images. Supports automatic backups and site-specific configurations.
+> [!NOTE]
+> Gemini-cli free
 
 ## Requirements
 
