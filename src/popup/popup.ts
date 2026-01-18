@@ -25,6 +25,7 @@ const UI = {
     storage: {
         exportBtn: document.getElementById("exportBtn") as HTMLButtonElement,
         importBtn: document.getElementById("importBtn") as HTMLButtonElement,
+        backupSelect: document.getElementById("backupSelect") as HTMLSelectElement,
     },
     logo: {
         img: document.getElementById("rescanPage") as HTMLImageElement
@@ -49,10 +50,12 @@ async function syncDraft(mode: DraftMode) {
             activeNovelId: UI.novel.select.value
         });
     } else {
-        const data = await browser.storage.local.get(["draft", "activeNovelId"]);
+        const data = await browser.storage.local.get(["draft", "activeNovelId", "backupInterval"]);
         const s = data.draft as DraftState;
 
         if (data.activeNovelId) UI.novel.select.value = data.activeNovelId as string;
+        if (data.backupInterval) UI.storage.backupSelect.value = data.backupInterval as string;
+        
         if (s) {
             UI.char.name.value = s.charName || "";
             UI.char.aliases.value = s.charAliases || "";
@@ -207,6 +210,11 @@ const init = async () => {
         };
         input.click();
     };
+
+    UI.storage.backupSelect.addEventListener("change", () => {
+        browser.storage.local.set({ backupInterval: UI.storage.backupSelect.value });
+        // Background script listens for storage changes to update alarm
+    });
 
     // Enter key support
     UI.novel.name.addEventListener("keydown", (e) => {

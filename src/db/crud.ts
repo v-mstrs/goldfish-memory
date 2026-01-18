@@ -27,16 +27,20 @@ export async function getCharactersByNovel(novelId: number) {
     return await db.characters.where("novelId").equals(novelId).toArray();
 }
 
+export async function generateBackupData() {
+    const novels = await db.novels.toArray();
+    const characters = await db.characters.toArray();
+    
+    return {
+        version: 1,
+        timestamp: Date.now(),
+        data: { novels, characters }
+    };
+}
+
 export async function exportDatabase() {
     try {
-        const novels = await db.novels.toArray();
-        const characters = await db.characters.toArray();
-        
-        const backup = {
-            version: 1,
-            timestamp: Date.now(),
-            data: { novels, characters }
-        };
+        const backup = await generateBackupData();
 
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
