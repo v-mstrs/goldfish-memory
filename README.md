@@ -1,6 +1,8 @@
 # Goldfish Memory
 
 A browser extension that helps you remember characters in web novels by highlighting their names and showing tooltips with descriptions and images. Supports automatic backups and site-specific configurations.
+> [!NOTE]
+> Gemini-cli free
 
 ## Requirements
 
@@ -27,12 +29,6 @@ To build the extension for production (creates `dist-chrome` and `dist-firefox` 
 
 ```bash
 npm run build
-```
-
-For development (hot module replacement not fully supported for content scripts, rebuild recommended on changes):
-
-```bash
-npm run dev
 ```
 
 ## How to Run
@@ -65,4 +61,10 @@ npm run dev
 - fenrirealm.com
 - mavintranslations.com
 - *(More can be added in `src/sites.ts`)*
-=======
+
+## Showcase
+
+
+
+https://github.com/user-attachments/assets/3ede00bd-ad2d-40b8-92b3-bd6bd8a5f619
+
