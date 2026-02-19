@@ -8,9 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.output
+.wxt
 dist
-dist-firefox
-dist-chrome
 dist-ssr
 *.local
 

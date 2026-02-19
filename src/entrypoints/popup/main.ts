@@ -277,7 +277,7 @@ class GoldfishPopup {
 
     private openOptions() {
         // Updated to use WXT's output filename
-        browser.tabs.create({ url: browser.runtime.getURL("popup.html") });
+        browser.tabs.create({ url: browser.runtime.getURL("/popup.html") });
         window.close();
     }
 }
