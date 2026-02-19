@@ -31,9 +31,9 @@ This branch expects a backend API instead of local Dexie storage.
 ### Installation
 1. Clone the repo.
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 ### Development
 ```bash
