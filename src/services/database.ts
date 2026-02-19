@@ -4,6 +4,7 @@ export interface Novel {
     id?: number;
     title: string;
     createdAt: number;
+    updateAt?: number;
 }
 
 export interface Character {
@@ -14,6 +15,7 @@ export interface Character {
     description: string;
     imageUrl?: string;
     createdAt: number;
+    updatedAt?: number;
 }
 
 export class DatabaseService extends Dexie {
@@ -22,9 +24,9 @@ export class DatabaseService extends Dexie {
 
     constructor() {
         super("GoldfishDB");
-        this.version(1).stores({
-            novels: "++id, title",
-            characters: "++id, novelId, name"
+        this.version(2).stores({
+            novels: "++id, title, createdAt",
+            characters: "++id, &[novelId+name], novelId, name, createdAt"
         });
     }
 
@@ -43,33 +45,39 @@ export class DatabaseService extends Dexie {
         return await this.characters.where("novelId").equals(novelId).toArray();
     }
 
-    async addCharacter(character: Omit<Character, "id" | "createdAt">): Promise<number | void> {
+    async addCharacter(character: Omit<Character, "id" | "createdAt" | "updatedAt">): Promise<number> {
         const cleanName = character.name.trim();
         const cleanAliases = character.aliases.map(a => a.trim()).filter(Boolean);
         const cleanDesc = character.description.trim();
         const cleanImg = character.imageUrl?.trim();
 
+        const now = Date.now();
+
         const existing = await this.characters
-            .where("novelId").equals(character.novelId)
-            .filter(c => c.name.trim().toLowerCase() === cleanName.toLowerCase())
+            .where("[novelId+name]")
+            .equals([character.novelId, cleanName])
             .first();
 
         if (existing) {
-            return await this.characters.update(existing.id!, {
+            await this.characters.update(existing.id, {
                 name: cleanName,
                 aliases: cleanAliases,
                 description: cleanDesc,
-                imageUrl: cleanImg
+                imageUrl: cleanImg,
+                updatedAt: now
             });
+
+            return existing.id!;
         }
 
         return await this.characters.add({
-            ...character,
+            novelId: character.novelId,
             name: cleanName,
             aliases: cleanAliases,
             description: cleanDesc,
             imageUrl: cleanImg,
-            createdAt: Date.now()
+            createdAt: now,
+            updatedAt: now
         });
     }
 
@@ -80,7 +88,7 @@ export class DatabaseService extends Dexie {
         ]);
 
         return {
-            version: 1,
+            version: 2,
             timestamp: Date.now(),
             data: { novels, characters }
         };
