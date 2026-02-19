@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import { browser } from 'wxt/browser';
 
 const MODAL_STYLE_ID = 'goldfish-modal-styles';
 
@@ -295,13 +295,8 @@ export function showAddCharacterModal(name: string, novelId: number, selectionRe
             // Center
             modal.style.top = '50%';
             modal.style.left = '50%';
-            modal.style.transform = 'translate(-50%, -50%)'; // Override scale?
-            // Note: The CSS has `transform: scale(0.95)` and `.visible` -> `scale(1)`.
-            // We need to combine translate and scale if we centre it this way.
-            // Better to let the class handle the scale and we just set the translate.
+            modal.style.transform = 'translate(-50%, -50%)'; 
             
-            // Actually, if we set `transform: translate(-50%, -50%)`, we lose the scale animation unless we include it.
-            // Let's manually set the final transform state for centered:
             modal.style.transition = 'opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)';
             
             // Initial state for centered (before visible class)

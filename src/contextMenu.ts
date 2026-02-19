@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import { browser } from 'wxt/browser';
 import { MATCH_PATTERNS } from "./sites";
 
 const MENU_ID = "add-character";

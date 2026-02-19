@@ -1,5 +1,5 @@
 import { dbService } from "./database";
-import browser from "webextension-polyfill";
+import { browser } from 'wxt/browser';
 
 const ALARM_NAME = "auto-backup";
 

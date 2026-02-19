@@ -1,7 +1,7 @@
-import { dbService } from "../services/database";
-import { backupService } from "../services/backup";
-import { type DraftMode, type DraftState } from "../types";
-import browser from "webextension-polyfill";
+import { dbService } from "../../services/database";
+import { backupService } from "../../services/backup";
+import { type DraftMode, type DraftState } from "../../types";
+import { browser } from 'wxt/browser';
 
 /**
  * GoldfishPopup handles all UI interactions within the extension popup.
@@ -38,6 +38,7 @@ class GoldfishPopup {
     };
 
     private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+    private debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         this.init();
@@ -45,7 +46,8 @@ class GoldfishPopup {
 
     private async init() {
         await this.refreshNovelDropdown();
-        await this.syncDraft("load");
+        // Small delay to ensure browser focus isn't interrupted by storage loading
+        setTimeout(() => this.syncDraft("load"), 100);
         this.setupListeners();
     }
 
@@ -53,35 +55,49 @@ class GoldfishPopup {
      * Bind UI events to handlers.
      */
     private setupListeners() {
-        this.ui.novel.saveBtn.onclick = () => this.handleSaveNovel();
-        this.ui.char.saveBtn.onclick = () => this.handleSaveCharacter();
-        this.ui.novel.toggleBtn.onclick = () => this.toggleDrawer();
-        this.ui.storage.exportBtn.onclick = () => backupService.manualExport();
-        this.ui.storage.importBtn.onclick = () => this.handleImport();
+        this.ui.novel.saveBtn.addEventListener("click", () => this.handleSaveNovel());
+        this.ui.char.saveBtn.addEventListener("click", () => this.handleSaveCharacter());
+        this.ui.novel.toggleBtn.addEventListener("click", () => this.toggleDrawer());
+        this.ui.storage.exportBtn.addEventListener("click", () => backupService.manualExport());
+        this.ui.storage.importBtn.addEventListener("click", () => this.handleImport());
 
-        this.ui.storage.backupSelect.onchange = () => {
+        this.ui.storage.backupSelect.addEventListener("change", () => {
             browser.storage.local.set({ backupInterval: this.ui.storage.backupSelect.value });
-        };
+        });
 
-        // Persist draft as you type
+        // Persist novel selection immediately
+        this.ui.novel.select.addEventListener("change", () => {
+            browser.storage.local.set({ activeNovelId: this.ui.novel.select.value });
+        });
+
+        // Persist draft with debounce to avoid blocking the UI thread
         const draftFields = [
             this.ui.char.name, 
             this.ui.char.aliases, 
             this.ui.char.desc, 
-            this.ui.char.img, 
-            this.ui.novel.select
+            this.ui.char.img
         ];
         
         draftFields.forEach(el => {
-            el.addEventListener(el instanceof HTMLSelectElement ? "change" : "input", () => this.syncDraft("save"));
+            el.addEventListener("input", () => this.syncDraft("save"));
         });
 
         // Enter key support for quick saving
-        this.ui.novel.name.onkeydown = (e) => e.key === "Enter" && this.handleSaveNovel();
-        this.ui.char.name.onkeydown = (e) => e.key === "Enter" && this.handleSaveCharacter();
+        this.ui.novel.name.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                this.handleSaveNovel();
+            }
+        });
+        this.ui.char.name.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                this.handleSaveCharacter();
+            }
+        });
 
-        this.ui.logo.img.onclick = () => this.handleRescan();
-        this.ui.header.optionsBtn.onclick = () => this.openOptions();
+        this.ui.logo.img.addEventListener("click", () => this.handleRescan());
+        this.ui.header.optionsBtn.addEventListener("click", () => this.openOptions());
     }
 
     /**
@@ -89,16 +105,17 @@ class GoldfishPopup {
      */
     private async syncDraft(mode: DraftMode) {
         if (mode === "save") {
-            const state: DraftState = {
-                charName: this.ui.char.name.value,
-                charAliases: this.ui.char.aliases.value,
-                charDesc: this.ui.char.desc.value,
-                charImg: this.ui.char.img.value
-            };
-            await browser.storage.local.set({
-                draft: state,
-                activeNovelId: this.ui.novel.select.value
-            });
+            if (this.debounceTimeout) clearTimeout(this.debounceTimeout);
+            
+            this.debounceTimeout = setTimeout(async () => {
+                const state: DraftState = {
+                    charName: this.ui.char.name.value,
+                    charAliases: this.ui.char.aliases.value,
+                    charDesc: this.ui.char.desc.value,
+                    charImg: this.ui.char.img.value
+                };
+                await browser.storage.local.set({ draft: state });
+            }, 500);
         } else {
             const data = await browser.storage.local.get(["draft", "activeNovelId", "backupInterval"]);
             if (data.activeNovelId) this.ui.novel.select.value = data.activeNovelId as string;
@@ -117,7 +134,10 @@ class GoldfishPopup {
     private toggleDrawer(forceState?: boolean) {
         const isHidden = this.ui.novel.drawer.classList.toggle("hidden", forceState);
         this.ui.novel.arrow.textContent = isHidden ? "▼" : "▲";
-        if (!isHidden) this.ui.novel.name.focus();
+        if (!isHidden) {
+            // Delay focus slightly to allow CSS transitions or layout updates
+            setTimeout(() => this.ui.novel.name.focus(), 50);
+        }
     }
 
     /**
@@ -256,8 +276,8 @@ class GoldfishPopup {
     }
 
     private openOptions() {
-        // Note: Currently just re-opens the popup in a full tab as a placeholder for options
-        browser.tabs.create({ url: browser.runtime.getURL("index.html") });
+        // Updated to use WXT's output filename
+        browser.tabs.create({ url: browser.runtime.getURL("popup.html") });
         window.close();
     }
 }
