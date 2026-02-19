@@ -22,9 +22,9 @@ Built with **WXT**, **Node** and **TS** using [dixie](https://github.com/dexie/D
 ### Installation
 1. Clone the repo.
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 ### Development
 ```bash
