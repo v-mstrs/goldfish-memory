@@ -256,11 +256,11 @@ export default defineContentScript({
                 style.textContent = `
                     .goldfish-highlight {
                         position: relative !important;
-                        color: #6495ED !important;
+                        color: #c5daffff !important;
                         display: inline !important;
                         padding: 0 2px !important;
                         border-radius: 3px !important;
-                        border-bottom: 1px dotted #6495ED !important;
+                        text-decoration: #c5daffff wavy underline;
                         cursor: help !important;
                         font-weight: bold !important;
                     }
