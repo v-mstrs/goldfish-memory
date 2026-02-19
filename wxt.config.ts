@@ -12,9 +12,7 @@ export default defineConfig({
         description: 'A browser extension that helps you remember characters in web novels.',
         permissions: [
             'storage',
-            'alarms',
-            'contextMenus',
-            'downloads'
+            'contextMenus'
         ],
         host_permissions: [
             '*://*.wetriedtls.com/*',

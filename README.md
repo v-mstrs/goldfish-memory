@@ -9,9 +9,7 @@ Built with **WXT**, **Node** and **TS**, configured to use an external API backe
 - **Highlighting**: Scans the page for stored character names and aliases.
 - **Tooltips**: Shows character descriptions and images on hover.
 - **Context Menu**: Add characters by selecting text and right-clicking.
-- **Auto-Backups**: Saves your database as JSON to your Downloads folder (Daily/Weekly).
 - **Dark UI**: Simple dark-themed popup and character creation modals.
-- **JSON Import/Export**: Manual data migration support.
 - **External API Mode**: Uses a backend service (for example, a local Raspberry Pi API).
 
 ## API Backend

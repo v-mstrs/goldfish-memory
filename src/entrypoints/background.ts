@@ -1,12 +1,9 @@
 import { defineBackground } from 'wxt/sandbox';
 import { browser } from 'wxt/browser';
 import { apiService } from "../services/api";
-import { backupService } from "../services/backup";
 import "../contextMenu";
 
 export default defineBackground(() => {
-    const ALARM_NAME = "auto-backup";
-
     /**
      * Main message listener for the background script.
      * Handles database queries and character creation.
@@ -39,25 +36,6 @@ export default defineBackground(() => {
         }
     });
 
-    /**
-     * Alarm listener for automated backups.
-     */
-    browser.alarms.onAlarm.addListener(async (alarm) => {
-        if (alarm.name === ALARM_NAME) {
-            await backupService.performAutoBackup();
-        }
-    });
-
-    /**
-     * Storage change listener to update settings dynamically.
-     */
-    browser.storage.onChanged.addListener((changes, area) => {
-        if (area === "local" && changes.backupInterval) {
-            backupService.scheduleAutoBackup();
-        }
-    });
-
     // Initial startup logic
     console.log("[Goldfish] Background script initializing...");
-    backupService.scheduleAutoBackup();
 });

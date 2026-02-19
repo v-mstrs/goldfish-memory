@@ -1,5 +1,4 @@
 import { apiService } from "../../services/api";
-import { backupService } from "../../services/backup";
 import { browser } from 'wxt/browser';
 
 /**
@@ -25,11 +24,6 @@ class GoldfishPopup {
             desc: document.getElementById("charDesc") as HTMLTextAreaElement,
             img: document.getElementById("charImgUrl") as HTMLInputElement,
             saveBtn: document.getElementById("addCharBtn") as HTMLButtonElement,
-        },
-        storage: {
-            exportBtn: document.getElementById("exportBtn") as HTMLButtonElement,
-            importBtn: document.getElementById("importBtn") as HTMLButtonElement,
-            backupSelect: document.getElementById("backupSelect") as HTMLSelectElement,
         },
         logo: {
             img: document.getElementById("rescanPage") as HTMLImageElement
@@ -57,13 +51,6 @@ class GoldfishPopup {
         this.ui.novel.saveBtn.addEventListener("click", () => this.handleSaveNovel());
         this.ui.char.saveBtn.addEventListener("click", () => this.handleSaveCharacter());
         this.ui.novel.toggleBtn.addEventListener("click", () => this.toggleDrawer());
-        this.ui.storage.exportBtn.addEventListener("click", () => backupService.manualExport());
-        this.ui.storage.importBtn.addEventListener("click", () => this.handleImport());
-
-        this.ui.storage.backupSelect.addEventListener("change", () => {
-            browser.storage.local.set({ backupInterval: this.ui.storage.backupSelect.value });
-        });
-
         // Persist novel selection immediately
         this.ui.novel.select.addEventListener("change", () => {
             browser.storage.local.set({ activeNovelId: this.ui.novel.select.value });
@@ -116,9 +103,8 @@ class GoldfishPopup {
                 await browser.storage.local.set({ draft: state });
             }, 500);
         } else {
-            const data = await browser.storage.local.get(["draft", "activeNovelId", "backupInterval"]);
+            const data = await browser.storage.local.get(["draft", "activeNovelId"]);
             if (data.activeNovelId) this.ui.novel.select.value = data.activeNovelId as string;
-            if (data.backupInterval) this.ui.storage.backupSelect.value = data.backupInterval as string;
 
             const s = data.draft as DraftState;
             if (s) {
@@ -224,35 +210,6 @@ class GoldfishPopup {
             this.showStatus("Failed to save character", "error");
             this.ui.char.saveBtn.disabled = false;
         }
-    }
-
-    private handleImport() {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "application/json";
-        input.onchange = async (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (!file) return;
-
-            try {
-                const text = await file.text();
-                const json = JSON.parse(text);
-
-                if (confirm("This will overwrite your current database. Continue?")) {
-                    await backupService.manualImport(json);
-                    this.showStatus("✔ Database imported!");
-
-                    await this.refreshNovelDropdown();
-                    this.ui.novel.select.value = "";
-                    await browser.storage.local.remove(["draft", "activeNovelId"]);
-                    await this.syncDraft("load");
-                }
-            } catch (err) {
-                console.error("[Popup] Import error:", err);
-                this.showStatus("Import failed", "error");
-            }
-        };
-        input.click();
     }
 
     private async handleRescan() {

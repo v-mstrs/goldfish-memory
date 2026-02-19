@@ -117,32 +117,6 @@ button {
     }
 }
 
-.json {
-    display: none; /* Hidden by default in popup */
-    gap: 8px;
-    border-top: 1px solid #333;
-    padding-top: 15px;
-
-    /* Show in expanded view */
-    @media (min-width: 450px) {
-        display: flex;
-    }
-
-    & button {
-        background: transparent;
-        border: 1px solid #3f3f3f;
-        color: #999;
-        font-size: 11px;
-        flex: 1;
-
-        &:hover {
-            background: #2d2d2d;
-            color: #fff;
-            border-color: #555;
-        }
-    }
-}
-
 /* --- Form Elements --- */
 input,
 textarea,

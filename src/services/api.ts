@@ -20,11 +20,6 @@ export interface Character {
 
 const DEFAULT_API_BASE_URL = "http://raspberrypi.local:8000";
 
-interface BackupPayload {
-    novels: Novel[];
-    characters: Character[];
-}
-
 export class ApiService {
     private async getBaseUrl(): Promise<string> {
         const { apiBaseUrl } = await browser.storage.local.get("apiBaseUrl");
@@ -84,21 +79,6 @@ export class ApiService {
         return result.id;
     }
 
-    async getBackupData() {
-        return await this.request<{
-            version: number;
-            timestamp: number;
-            data: BackupPayload;
-        }>("/backup/export");
-    }
-
-    async importData(data: BackupPayload): Promise<void> {
-        await this.request<void>("/backup/import", {
-            method: "POST",
-            body: JSON.stringify({ data })
-        });
-    }
 }
 
 export const apiService = new ApiService();
-
