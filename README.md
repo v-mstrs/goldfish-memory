@@ -2,7 +2,7 @@
 
 A browser extension for web novel readers that highlights character names and shows tooltips with their info. Useful for tracking massive casts in long stories without needing a separate wiki.
 
-Built with **WXT**, **Node** and **TS** using [dixie](https://github.com/dexie/Dexie.js)
+Built with **[WXT](https://github.com/wxt-dev/wxt)**, **Node** and **TS** using [dixie](https://github.com/dexie/Dexie.js)
 
 ## Features
 
