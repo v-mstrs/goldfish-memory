@@ -21,7 +21,9 @@ export default defineConfig({
             '*://*.revengernovel.com/*',
             '*://*.fenrirealm.com/*',
             '*://*.mavintranslations.com/*',
-            '*://*.wuxiaworld.com/*'
+            '*://*.wuxiaworld.com/*',
+            'http://*/*',
+            'https://*/*'
         ],
         action: {
             default_title: 'Goldfish Memory',
