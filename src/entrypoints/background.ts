@@ -1,6 +1,6 @@
 import { defineBackground } from 'wxt/sandbox';
 import { browser } from 'wxt/browser';
-import { dbService } from "../services/database";
+import { apiService } from "../services/api";
 import { backupService } from "../services/backup";
 import "../contextMenu";
 
@@ -18,10 +18,10 @@ export default defineBackground(() => {
                     return { status: "pong" };
 
                 case "GET_CHARACTERS":
-                    return await dbService.getCharactersByNovel(message.novelId);
+                    return await apiService.getCharactersByNovel(message.novelId);
 
                 case "ADD_CHARACTER":
-                    await dbService.addCharacter({
+                    await apiService.addCharacter({
                         novelId: message.novelId,
                         name: message.name,
                         aliases: message.aliases || [],

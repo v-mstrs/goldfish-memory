@@ -1,4 +1,4 @@
-import { dbService } from "./database";
+import { apiService } from "./api";
 import { browser } from 'wxt/browser';
 
 const ALARM_NAME = "auto-backup";
@@ -48,7 +48,7 @@ export class BackupService {
     async performAutoBackup() {
         let url: string | null = null;
         try {
-            const backup = await dbService.getBackupData();
+            const backup = await apiService.getBackupData();
             const json = JSON.stringify(backup, null, 2);
             
             const blob = new Blob([json], { type: "application/json" });
@@ -79,7 +79,7 @@ export class BackupService {
      * Manual export for the user (via popup).
      */
     async manualExport() {
-        const backup = await dbService.getBackupData();
+        const backup = await apiService.getBackupData();
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         
@@ -101,7 +101,7 @@ export class BackupService {
         if (!jsonData.data || !Array.isArray(jsonData.data.novels) || !Array.isArray(jsonData.data.characters)) {
             throw new Error("Invalid backup file format");
         }
-        await dbService.importData(jsonData.data);
+        await apiService.importData(jsonData.data);
     }
 }
 

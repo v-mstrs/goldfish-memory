@@ -1,4 +1,4 @@
-import { dbService } from "../../services/database";
+import { apiService } from "../../services/api";
 import { backupService } from "../../services/backup";
 import { browser } from 'wxt/browser';
 
@@ -159,7 +159,7 @@ class GoldfishPopup {
     }
 
     private async refreshNovelDropdown(selectId?: number) {
-        const novels = await dbService.getAllNovels();
+        const novels = await apiService.getAllNovels();
         this.ui.novel.select.length = 1; // Keep placeholder
 
         novels.forEach(novel => {
@@ -175,7 +175,7 @@ class GoldfishPopup {
 
         try {
             this.ui.novel.saveBtn.disabled = true;
-            const newId = await dbService.addNovel(title);
+            const newId = await apiService.addNovel(title);
             this.ui.novel.name.value = "";
             this.toggleDrawer(true);
             await this.refreshNovelDropdown(newId);
@@ -199,7 +199,7 @@ class GoldfishPopup {
 
         try {
             this.ui.char.saveBtn.disabled = true;
-            await dbService.addCharacter({ 
+            await apiService.addCharacter({ 
                 novelId, 
                 name, 
                 aliases, 

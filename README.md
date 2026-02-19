@@ -2,7 +2,7 @@
 
 A browser extension for web novel readers that highlights character names and shows tooltips with their info. Useful for tracking massive casts in long stories without needing a separate wiki.
 
-Built with **[WXT](https://github.com/wxt-dev/wxt)**, **Node** and **TS** using [dixie](https://github.com/dexie/Dexie.js)
+Built with **WXT**, **Node** and **TS**, configured to use an external API backend.
 
 ## Features
 
@@ -12,6 +12,15 @@ Built with **[WXT](https://github.com/wxt-dev/wxt)**, **Node** and **TS** using 
 - **Auto-Backups**: Saves your database as JSON to your Downloads folder (Daily/Weekly).
 - **Dark UI**: Simple dark-themed popup and character creation modals.
 - **JSON Import/Export**: Manual data migration support.
+- **External API Mode**: Uses a backend service (for example, a local Raspberry Pi API).
+
+## API Backend
+
+This branch expects a backend API instead of local Dexie storage.
+
+- Default base URL: `http://raspberrypi.local:8000`
+- API client location: `src/services/api.ts`
+- Set a custom URL at runtime via extension storage key: `apiBaseUrl`
 
 ## Setup
 

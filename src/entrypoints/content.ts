@@ -1,7 +1,7 @@
 import { defineContentScript } from 'wxt/sandbox';
 import { browser } from 'wxt/browser';
 import { getActiveConfig } from "../sites";
-import { type Character } from "../services/database";
+import { type Character } from "../services/api";
 import { showAddCharacterModal } from "../modal";
 
 export default defineContentScript({
