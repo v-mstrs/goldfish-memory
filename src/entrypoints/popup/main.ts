@@ -1,6 +1,5 @@
 import { dbService } from "../../services/database";
 import { backupService } from "../../services/backup";
-import { type DraftMode, type DraftState } from "../../types";
 import { browser } from 'wxt/browser';
 
 /**
@@ -281,6 +280,16 @@ class GoldfishPopup {
         window.close();
     }
 }
+
+interface DraftState {
+    selectedNovel?: string;
+    charName?: string;
+    charAliases?: string;
+    charDesc?: string;
+    charImg?: string;
+}
+
+type DraftMode = "save" | "load";
 
 // Start the popup logic
 document.addEventListener("DOMContentLoaded", () => new GoldfishPopup());
