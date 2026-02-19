@@ -14,6 +14,10 @@ export const SITES = [
     {
         hostname: "mavintranslations.com",
         contentSelector: "body"
+    },
+    {
+        hostname: "wuxiaworld.com",
+        contentSelector: "div.chapter-content"
     }
 ] as const;
 

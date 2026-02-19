@@ -8,7 +8,8 @@
         "*://*.wetriedtls.com/*",
         "*://*.revengernovel.com/*", 
         "*://*.fenrirealm.com/*",
-        "*://*.mavintranslations.com/series/*"
+        "*://*.mavintranslations.com/series/*",
+        "*://*.wuxiaworld.com/*"
       ],
       "js": ["content.js"]
     }
@@ -28,6 +29,7 @@
     "*://*.wetriedtls.com/*",
     "*://*.revengernovel.com/*", 
     "*://*.fenrirealm.com/*",
-    "*://*.mavintranslations.com/*"
+    "*://*.mavintranslations.com/*",
+    "*://*.wuxiaworld.com/*"
   ]
 }
