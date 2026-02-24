@@ -16,7 +16,7 @@ Built with **WXT**, **Node** and **TS**, configured to use an external API backe
 
 This branch expects a backend API instead of local Dexie storage.
 
-- Default base URL: `http://raspberrypi.local:8000`
+- Default base URL: `http://127.0.0.1:8000`
 - API client location: `src/services/api.ts`
 - Set a custom URL at runtime via extension storage key: `apiBaseUrl`
 

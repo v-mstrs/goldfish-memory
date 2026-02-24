@@ -15,13 +15,14 @@ export default defineConfig({
             'contextMenus'
         ],
         host_permissions: [
+            'http://127.0.0.1/*',
+            'http://localhost/*',
             '*://*.wetriedtls.com/*',
             '*://*.revengernovel.com/*',
             '*://*.fenrirealm.com/*',
             '*://*.mavintranslations.com/*',
             '*://*.wuxiaworld.com/*',
-            'http://*/*',
-            'https://*/*'
+            '*://*.utoon.net/*'
         ],
         action: {
             default_title: 'Goldfish Memory',

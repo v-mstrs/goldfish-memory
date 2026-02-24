@@ -18,10 +18,17 @@ export const SITES = [
     {
         hostname: "wuxiaworld.com",
         contentSelector: "div.chapter-content"
+    },
+    {
+        hostname: "utoon.net",
+        contentSelector: "div.reading-content"
     }
+
 ] as const;
 
-export const MATCH_PATTERNS = SITES.map(s => `*://*.${s.hostname}/*`);
+const normalizeHostname = (hostname: string) => hostname.trim().toLowerCase();
+
+export const MATCH_PATTERNS = SITES.map((s) => `*://*.${normalizeHostname(s.hostname)}/*`);
 
 export const getActiveConfig = () =>
-    SITES.find(s => window.location.hostname.includes(s.hostname));
+    SITES.find((s) => window.location.hostname.includes(normalizeHostname(s.hostname)));

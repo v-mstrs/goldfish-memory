@@ -140,7 +140,7 @@ function injectModalStyles() {
 /**
  * Displays a compact, dark-themed modal above the selected text to add a new character.
  */
-export function showAddCharacterModal(name: string, novelId: number, selectionRect?: DOMRect) {
+export function showAddCharacterModal(name: string, novelSlug: string, selectionRect?: DOMRect) {
     injectModalStyles();
 
     const existing = document.getElementById('goldfish-modal-overlay');
@@ -230,7 +230,7 @@ export function showAddCharacterModal(name: string, novelId: number, selectionRe
         try {
             await browser.runtime.sendMessage({
                 type: 'ADD_CHARACTER',
-                novelId,
+                novelSlug,
                 name,
                 description,
                 aliases,

@@ -1,24 +1,42 @@
 import { browser } from "wxt/browser";
 
 export interface Novel {
-    id?: number;
+    id: number;
     title: string;
-    createdAt: number;
-    updatedAt?: number;
+    slug: string;
 }
 
 export interface Character {
-    id?: number;
-    novelId: number;
     name: string;
     aliases: string[];
     description: string;
     imageUrl?: string;
-    createdAt: number;
-    updatedAt?: number;
 }
 
-const DEFAULT_API_BASE_URL = "http://raspberrypi.local:8000";
+interface NovelDetailResponse {
+    id: number;
+    title: string;
+    slug: string;
+    characters: Array<{
+        name: string;
+        description: string;
+        image_url?: string | null;
+        aliases: string[];
+    }>;
+}
+
+interface CharacterResponse {
+    id: number;
+}
+
+const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
+
+function slugify(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
 
 export class ApiService {
     private async getBaseUrl(): Promise<string> {
@@ -49,31 +67,44 @@ export class ApiService {
         return await response.json() as T;
     }
 
-    async addNovel(title: string): Promise<number> {
-        const result = await this.request<{ id: number }>("/novels", {
+    async addNovel(title: string): Promise<Novel> {
+        const trimmedTitle = title.trim();
+        const slug = slugify(trimmedTitle);
+        if (!slug) {
+            throw new Error("Novel slug is empty. Use letters or numbers in the title.");
+        }
+
+        return await this.request<Novel>("/", {
             method: "POST",
-            body: JSON.stringify({ title: title.trim() })
+            body: JSON.stringify({
+                title: trimmedTitle,
+                slug
+            })
         });
-        return result.id;
     }
 
     async getAllNovels(): Promise<Novel[]> {
         return await this.request<Novel[]>("/novels");
     }
 
-    async getCharactersByNovel(novelId: number): Promise<Character[]> {
-        return await this.request<Character[]>(`/novels/${novelId}/characters`);
+    async getCharactersByNovelSlug(novelSlug: string): Promise<Character[]> {
+        const detail = await this.request<NovelDetailResponse>(`/novels/${encodeURIComponent(novelSlug)}`);
+        return detail.characters.map((char) => ({
+            name: char.name,
+            aliases: char.aliases || [],
+            description: char.description || "",
+            imageUrl: char.image_url || ""
+        }));
     }
 
-    async addCharacter(character: Omit<Character, "id" | "createdAt" | "updatedAt">): Promise<number> {
-        const result = await this.request<{ id: number }>("/characters", {
+    async addCharacter(novelSlug: string, character: Character): Promise<number> {
+        const result = await this.request<CharacterResponse>(`/novels/${encodeURIComponent(novelSlug)}/characters`, {
             method: "POST",
             body: JSON.stringify({
-                novelId: character.novelId,
                 name: character.name.trim(),
                 aliases: character.aliases.map(alias => alias.trim()).filter(Boolean),
                 description: character.description.trim(),
-                imageUrl: character.imageUrl?.trim() || ""
+                image_url: character.imageUrl?.trim() || ""
             })
         });
         return result.id;

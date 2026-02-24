@@ -15,11 +15,10 @@ export default defineBackground(() => {
                     return { status: "pong" };
 
                 case "GET_CHARACTERS":
-                    return await apiService.getCharactersByNovel(message.novelId);
+                    return await apiService.getCharactersByNovelSlug(message.novelSlug);
 
                 case "ADD_CHARACTER":
-                    await apiService.addCharacter({
-                        novelId: message.novelId,
+                    await apiService.addCharacter(message.novelSlug, {
                         name: message.name,
                         aliases: message.aliases || [],
                         description: message.description || "",

@@ -38,10 +38,21 @@ class GoldfishPopup {
     }
 
     private async init() {
+        await this.verifyBackgroundConnection();
         await this.refreshNovelDropdown();
         // Small delay to ensure browser focus isn't interrupted by storage loading
         setTimeout(() => this.syncDraft("load"), 100);
         this.setupListeners();
+    }
+
+    private async verifyBackgroundConnection() {
+        try {
+            const response = await browser.runtime.sendMessage({ type: "PING" });
+            console.log("[Goldfish] Background ping:", response);
+        } catch (error) {
+            console.error("[Goldfish] Background unreachable:", error);
+            this.showStatus("Background script is not reachable", "error");
+        }
     }
 
     /**
@@ -53,7 +64,7 @@ class GoldfishPopup {
         this.ui.novel.toggleBtn.addEventListener("click", () => this.toggleDrawer());
         // Persist novel selection immediately
         this.ui.novel.select.addEventListener("change", () => {
-            browser.storage.local.set({ activeNovelId: this.ui.novel.select.value });
+            browser.storage.local.set({ activeNovelSlug: this.ui.novel.select.value });
         });
 
         // Persist draft with debounce to avoid blocking the UI thread
@@ -103,8 +114,8 @@ class GoldfishPopup {
                 await browser.storage.local.set({ draft: state });
             }, 500);
         } else {
-            const data = await browser.storage.local.get(["draft", "activeNovelId"]);
-            if (data.activeNovelId) this.ui.novel.select.value = data.activeNovelId as string;
+            const data = await browser.storage.local.get(["draft", "activeNovelSlug"]);
+            if (data.activeNovelSlug) this.ui.novel.select.value = data.activeNovelSlug as string;
 
             const s = data.draft as DraftState;
             if (s) {
@@ -144,15 +155,15 @@ class GoldfishPopup {
         this.toastTimeout = setTimeout(() => this.ui.novel.toast.classList.add("hidden"), 2500);
     }
 
-    private async refreshNovelDropdown(selectId?: number) {
+    private async refreshNovelDropdown(selectSlug?: string) {
         const novels = await apiService.getAllNovels();
         this.ui.novel.select.length = 1; // Keep placeholder
 
         novels.forEach(novel => {
-            this.ui.novel.select.appendChild(new Option(novel.title, novel.id!.toString()));
+            this.ui.novel.select.appendChild(new Option(novel.title, novel.slug));
         });
 
-        if (selectId) this.ui.novel.select.value = selectId.toString();
+        if (selectSlug) this.ui.novel.select.value = selectSlug;
     }
 
     private async handleSaveNovel() {
@@ -161,10 +172,11 @@ class GoldfishPopup {
 
         try {
             this.ui.novel.saveBtn.disabled = true;
-            const newId = await apiService.addNovel(title);
+            const novel = await apiService.addNovel(title);
             this.ui.novel.name.value = "";
             this.toggleDrawer(true);
-            await this.refreshNovelDropdown(newId);
+            await this.refreshNovelDropdown(novel.slug);
+            await browser.storage.local.set({ activeNovelSlug: novel.slug });
             this.showStatus("✔ Novel added");
         } catch (err) {
             this.showStatus("Error saving novel", "error");
@@ -174,19 +186,18 @@ class GoldfishPopup {
     }
 
     private async handleSaveCharacter() {
-        const novelId = parseInt(this.ui.novel.select.value);
+        const novelSlug = this.ui.novel.select.value;
         const name = this.ui.char.name.value.trim();
         const desc = this.ui.char.desc.value.trim();
         const img = this.ui.char.img.value.trim();
         const aliases = this.ui.char.aliases.value.split(",").map(a => a.trim()).filter(Boolean);
 
-        if (isNaN(novelId)) return this.showStatus("Select a novel first!", "error");
+        if (!novelSlug) return this.showStatus("Select a novel first!", "error");
         if (!name || !desc) return this.showStatus("Name and description required", "error");
 
         try {
             this.ui.char.saveBtn.disabled = true;
-            await apiService.addCharacter({ 
-                novelId, 
+            await apiService.addCharacter(novelSlug, {
                 name, 
                 aliases, 
                 description: desc, 

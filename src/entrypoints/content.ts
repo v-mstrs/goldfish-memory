@@ -1,24 +1,19 @@
 import { defineContentScript } from 'wxt/sandbox';
 import { browser } from 'wxt/browser';
-import { getActiveConfig } from "../sites";
+import { getActiveConfig, MATCH_PATTERNS } from "../sites";
 import { type Character } from "../services/api";
 import { showAddCharacterModal } from "../modal";
 
 export default defineContentScript({
-    matches: [
-        "*://*.wetriedtls.com/*",
-        "*://*.revengernovel.com/*",
-        "*://*.fenrirealm.com/*",
-        "*://*.mavintranslations.com/*",
-        "*://*.wuxiaworld.com/*"
-    ],
+    matches: MATCH_PATTERNS as unknown as string[],
     main() {
+        console.log("[Goldfish] Content script loaded:", window.location.href);
         /**
          * GoldfishHighlighter handles the scanning and highlighting of character names
          * on supported web novel sites.
          */
         class GoldfishHighlighter {
-            private currentNovelId: number | null = null;
+            private currentNovelSlug: string | null = null;
             private isProcessing = false;
             private lastUrl = location.href;
             private readonly HIGHLIGHT_LIMIT_PER_CHAR = 5;
@@ -33,7 +28,10 @@ export default defineContentScript({
              */
             private async init() {
                 const config = getActiveConfig();
-                if (!config) return;
+                if (!config) {
+                    console.warn("[Goldfish] No site config matched for:", window.location.hostname);
+                    return;
+                }
 
                 if (document.readyState === "loading") {
                     await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
@@ -68,14 +66,14 @@ export default defineContentScript({
 
                 // Watch for novel selection changes
                 browser.storage.onChanged.addListener((changes, area) => {
-                    if (area === 'local' && changes.activeNovelId) {
+                    if (area === 'local' && changes.activeNovelSlug) {
                         this.init();
                     }
                 });
             }
 
             private async handleAddCharacter(text: string) {
-                if (!this.currentNovelId) {
+                if (!this.currentNovelSlug) {
                     alert("Please select a novel in the Goldfish extension popup first.");
                     return;
                 }
@@ -84,7 +82,7 @@ export default defineContentScript({
                 if (selection && selection.rangeCount > 0) {
                     try { rect = selection.getRangeAt(0).getBoundingClientRect(); } catch (e) {}
                 }
-                showAddCharacterModal(text, this.currentNovelId, rect);
+                showAddCharacterModal(text, this.currentNovelSlug, rect);
             }
 
             private handleTooltipPositioning(e: MouseEvent) {
@@ -124,14 +122,14 @@ export default defineContentScript({
                 this.isProcessing = true;
 
                 try {
-                    const data = await browser.storage.local.get('activeNovelId');
-                    const activeNovelId = data.activeNovelId as string;
-                    if (!activeNovelId) return;
+                    const data = await browser.storage.local.get('activeNovelSlug');
+                    const activeNovelSlug = data.activeNovelSlug as string;
+                    if (!activeNovelSlug) return;
 
-                    this.currentNovelId = parseInt(activeNovelId);
+                    this.currentNovelSlug = activeNovelSlug;
                     const characters = await browser.runtime.sendMessage({
                         type: 'GET_CHARACTERS',
-                        novelId: this.currentNovelId
+                        novelSlug: this.currentNovelSlug
                     }) as Character[];
 
                     if (!characters || characters.length === 0) return;
@@ -176,11 +174,12 @@ export default defineContentScript({
                     let node;
                     while (node = walker.nextNode()) nodes.push(node as Text);
 
-                    const matchCounts = new Map<number, number>();
+                    const matchCounts = new Map<string, number>();
                     let totalApplied = 0;
 
                     for (const textNode of nodes) {
                         const text = textNode.nodeValue || "";
+                        regex.lastIndex = 0;
                         if (!regex.test(text)) continue;
 
                         regex.lastIndex = 0; // Reset after test()
@@ -191,8 +190,9 @@ export default defineContentScript({
                         while ((match = regex.exec(text)) !== null) {
                             const matchedName = match[0].toLowerCase();
                             const char = nameToChar.get(matchedName);
+                            const matchKey = char?.name?.toLowerCase() || "";
                             
-                            if (!char || (matchCounts.get(char.id!) || 0) >= this.HIGHLIGHT_LIMIT_PER_CHAR) {
+                            if (!char || (matchCounts.get(matchKey) || 0) >= this.HIGHLIGHT_LIMIT_PER_CHAR) {
                                 fragments.push(text.substring(lastIndex, regex.lastIndex));
                                 lastIndex = regex.lastIndex;
                                 continue;
@@ -204,7 +204,7 @@ export default defineContentScript({
                             // The highlight itself
                             fragments.push(this.createHighlightNode(match[0], char));
 
-                            matchCounts.set(char.id!, (matchCounts.get(char.id!) || 0) + 1);
+                            matchCounts.set(matchKey, (matchCounts.get(matchKey) || 0) + 1);
                             totalApplied++;
                             lastIndex = regex.lastIndex;
                         }
