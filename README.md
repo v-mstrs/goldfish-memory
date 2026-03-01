@@ -2,7 +2,7 @@
 
 A browser extension for web novel readers that highlights character names and shows tooltips with their info. Useful for tracking massive casts in long stories without needing a separate wiki.
 
-Built with **WXT**, **Node** and **TS**, configured to be use with small local backend https://github.com/v-mstrs/murim-rot/.
+Built with **WXT**, **Node** and **TS**, configured to be used with small local backend api something https://github.com/v-mstrs/murim-rot/.
 
 ## Features
 
