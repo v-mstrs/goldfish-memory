@@ -1,6 +1,18 @@
 import { apiService } from "../../services/api";
 import { browser } from 'wxt/browser';
 
+interface HighlightDisplaySettings {
+    fontWeight: "400" | "600" | "700";
+    fontStyle: "normal" | "italic";
+    underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
+}
+
+const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
+    fontWeight: "700",
+    underlineStyle: "wavy",
+    fontStyle: "normal"
+};
+
 /**
  * GoldfishPopup handles all UI interactions within the extension popup.
  */
@@ -8,6 +20,12 @@ class GoldfishPopup {
     private ui = {
         header: {
             optionsBtn: document.getElementById("optionsBtn") as HTMLButtonElement,
+        },
+        settings: {
+            textStyle: document.getElementById("displayTextStyle") as HTMLSelectElement,
+            underline: document.getElementById("displayUnderlineStyle") as HTMLSelectElement,
+            previewWord: document.getElementById("highlightPreviewWord") as HTMLSpanElement,
+            status: document.getElementById("displaySettingsStatus") as HTMLDivElement,
         },
         novel: {
             select: document.getElementById("novelSelect") as HTMLSelectElement,
@@ -23,6 +41,8 @@ class GoldfishPopup {
             aliases: document.getElementById("charAliases") as HTMLInputElement,
             desc: document.getElementById("charDesc") as HTMLTextAreaElement,
             img: document.getElementById("charImgUrl") as HTMLInputElement,
+            color: document.getElementById("charHighlightColor") as HTMLInputElement,
+            palette: document.getElementById("charHighlightPalette") as HTMLDivElement,
             saveBtn: document.getElementById("addCharBtn") as HTMLButtonElement,
         },
         logo: {
@@ -32,6 +52,7 @@ class GoldfishPopup {
 
     private toastTimeout: ReturnType<typeof setTimeout> | null = null;
     private debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+    private settingsStatusTimeout: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         this.init();
@@ -40,6 +61,7 @@ class GoldfishPopup {
     private async init() {
         await this.verifyBackgroundConnection();
         await this.refreshNovelDropdown();
+        await this.loadDisplaySettings();
         // Small delay to ensure browser focus isn't interrupted by storage loading
         setTimeout(() => this.syncDraft("load"), 100);
         this.setupListeners();
@@ -72,11 +94,35 @@ class GoldfishPopup {
             this.ui.char.name, 
             this.ui.char.aliases, 
             this.ui.char.desc, 
-            this.ui.char.img
+            this.ui.char.img,
+            this.ui.char.color
         ];
         
         draftFields.forEach(el => {
             el.addEventListener("input", () => this.syncDraft("save"));
+        });
+
+        this.ui.char.palette.addEventListener("click", (event) => {
+            const target = event.target as HTMLElement;
+            const swatch = target.closest(".color-swatch") as HTMLButtonElement | null;
+            if (!swatch) return;
+
+            this.setHighlightColor(swatch.dataset.color || "#c5daff");
+            void this.syncDraft("save");
+        });
+
+        this.ui.char.color.addEventListener("change", () => {
+            this.setHighlightColor(this.ui.char.color.value);
+            void this.syncDraft("save");
+        });
+
+        [
+            this.ui.settings.textStyle,
+            this.ui.settings.underline,
+        ].forEach((el) => {
+            el.addEventListener("input", () => {
+                void this.saveDisplaySettings();
+            });
         });
 
         // Enter key support for quick saving
@@ -109,7 +155,8 @@ class GoldfishPopup {
                     charName: this.ui.char.name.value,
                     charAliases: this.ui.char.aliases.value,
                     charDesc: this.ui.char.desc.value,
-                    charImg: this.ui.char.img.value
+                    charImg: this.ui.char.img.value,
+                    charColor: this.ui.char.color.value
                 };
                 await browser.storage.local.set({ draft: state });
             }, 500);
@@ -123,14 +170,103 @@ class GoldfishPopup {
                 this.ui.char.aliases.value = s.charAliases || "";
                 this.ui.char.desc.value = s.charDesc || "";
                 this.ui.char.img.value = s.charImg || "";
+                this.setHighlightColor(s.charColor || "#c5daff");
             }
         }
     }
 
-    private toggleDrawer(forceState?: boolean) {
-        const isHidden = this.ui.novel.drawer.classList.toggle("hidden", forceState);
-        this.ui.novel.arrow.textContent = isHidden ? "▼" : "▲";
-        if (!isHidden) {
+    private setHighlightColor(value: string) {
+        const normalized = this.normalizeHexColor(value) || "#c5daff";
+        this.ui.char.color.value = normalized;
+
+        this.ui.char.palette.querySelectorAll(".color-swatch").forEach((swatch) => {
+            const button = swatch as HTMLButtonElement;
+            button.classList.toggle("selected", button.dataset.color === normalized);
+        });
+
+        this.renderHighlightPreview(this.readDisplaySettingsFromForm());
+    }
+
+    private normalizeHexColor(value: string): string | null {
+        const trimmed = value.trim();
+        if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase();
+        return null;
+    }
+
+    private async loadDisplaySettings() {
+        const { highlightDisplaySettings } = await browser.storage.local.get("highlightDisplaySettings");
+        const settings = this.withDisplayDefaults(highlightDisplaySettings as Partial<HighlightDisplaySettings> | undefined);
+
+        this.ui.settings.textStyle.value = `${settings.fontWeight}-${settings.fontStyle}`;
+        this.ui.settings.underline.value = settings.underlineStyle;
+        this.renderHighlightPreview(settings);
+    }
+
+    private async saveDisplaySettings() {
+        const settings = this.readDisplaySettingsFromForm();
+
+        await browser.storage.local.set({ highlightDisplaySettings: settings });
+        this.renderHighlightPreview(settings);
+        this.showSettingsSaved();
+        await this.handleRescan();
+    }
+
+    private readDisplaySettingsFromForm(): HighlightDisplaySettings {
+        const [fontWeight, fontStyle] = this.ui.settings.textStyle.value.split("-") as [
+            HighlightDisplaySettings["fontWeight"],
+            HighlightDisplaySettings["fontStyle"]
+        ];
+
+        return {
+            fontWeight,
+            fontStyle,
+            underlineStyle: this.ui.settings.underline.value as HighlightDisplaySettings["underlineStyle"],
+        };
+    }
+
+    private withDisplayDefaults(value?: Partial<HighlightDisplaySettings>): HighlightDisplaySettings {
+        return {
+            fontWeight: value?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
+            fontStyle: value?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
+            underlineStyle: value?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
+        };
+    }
+
+    private showSettingsSaved() {
+        if (this.settingsStatusTimeout) clearTimeout(this.settingsStatusTimeout);
+        this.ui.settings.status.textContent = "Saved";
+        this.ui.settings.status.classList.remove("hidden");
+        this.settingsStatusTimeout = setTimeout(() => {
+            this.ui.settings.status.classList.add("hidden");
+        }, 1200);
+    }
+
+    private renderHighlightPreview(settings: HighlightDisplaySettings) {
+        const preview = this.ui.settings.previewWord;
+        const previewColor = this.normalizeHexColor(this.ui.char.color.value) || "#c5daff";
+
+        preview.style.fontWeight = settings.fontWeight;
+        preview.style.fontStyle = settings.fontStyle;
+        preview.style.color = previewColor;
+        preview.style.textDecoration = settings.underlineStyle === "none"
+            ? "none"
+            : `${previewColor} ${settings.underlineStyle} underline`;
+        preview.style.textDecorationColor = previewColor;
+    }
+
+    private toggleDrawer(forceHidden?: boolean) {
+        const shouldHide = typeof forceHidden === "boolean"
+            ? forceHidden
+            : !this.ui.novel.drawer.classList.contains("hidden");
+
+        this.setDrawerHidden(shouldHide);
+    }
+
+    private setDrawerHidden(hidden: boolean) {
+        this.ui.novel.drawer.classList.toggle("hidden", hidden);
+        this.ui.novel.arrow.textContent = hidden ? "▼" : "▲";
+
+        if (!hidden) {
             // Delay focus slightly to allow CSS transitions or layout updates
             setTimeout(() => this.ui.novel.name.focus(), 50);
         }
@@ -190,6 +326,7 @@ class GoldfishPopup {
         const name = this.ui.char.name.value.trim();
         const desc = this.ui.char.desc.value.trim();
         const img = this.ui.char.img.value.trim();
+        const highlightColor = this.normalizeHexColor(this.ui.char.color.value) || "#c5daff";
         const aliases = this.ui.char.aliases.value.split(",").map(a => a.trim()).filter(Boolean);
 
         if (!novelSlug) return this.showStatus("Select a novel first!", "error");
@@ -201,7 +338,8 @@ class GoldfishPopup {
                 name, 
                 aliases, 
                 description: desc, 
-                imageUrl: img 
+                imageUrl: img,
+                highlightColor
             });
 
             const originalText = this.ui.char.saveBtn.textContent;
@@ -210,6 +348,7 @@ class GoldfishPopup {
 
             // Reset form
             [this.ui.char.name, this.ui.char.aliases, this.ui.char.desc, this.ui.char.img].forEach(i => i.value = "");
+            this.setHighlightColor("#c5daff");
             await browser.storage.local.remove("draft");
 
             setTimeout(() => {
@@ -255,6 +394,7 @@ interface DraftState {
     charAliases?: string;
     charDesc?: string;
     charImg?: string;
+    charColor?: string;
 }
 
 type DraftMode = "save" | "load";

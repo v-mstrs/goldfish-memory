@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt';
+import { API_HOST_PERMISSIONS, SITE_HOST_PERMISSIONS } from './src/sites';
 
 export default defineConfig({
     srcDir: 'src',
@@ -14,16 +15,7 @@ export default defineConfig({
             'storage',
             'contextMenus'
         ],
-        host_permissions: [
-            'http://127.0.0.1/*',
-            'http://localhost/*',
-            '*://*.wetriedtls.com/*',
-            '*://*.revengernovel.com/*',
-            '*://*.fenrirealm.com/*',
-            '*://*.mavintranslations.com/*',
-            '*://*.wuxiaworld.com/*',
-            '*://*.utoon.net/*'
-        ],
+        host_permissions: [...API_HOST_PERMISSIONS, ...SITE_HOST_PERMISSIONS],
         action: {
             default_title: 'Goldfish Memory',
             default_popup: 'popup.html'

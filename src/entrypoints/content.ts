@@ -4,6 +4,18 @@ import { getActiveConfig, MATCH_PATTERNS } from "../sites";
 import { type Character } from "../services/api";
 import { showAddCharacterModal } from "../modal";
 
+interface HighlightDisplaySettings {
+    fontWeight: "400" | "600" | "700";
+    fontStyle: "normal" | "italic";
+    underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
+}
+
+const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
+    fontWeight: "700",
+    underlineStyle: "wavy",
+    fontStyle: "normal",
+};
+
 export default defineContentScript({
     matches: MATCH_PATTERNS as unknown as string[],
     main() {
@@ -17,6 +29,7 @@ export default defineContentScript({
             private isProcessing = false;
             private lastUrl = location.href;
             private readonly HIGHLIGHT_LIMIT_PER_CHAR = 5;
+            private displaySettings: HighlightDisplaySettings = DEFAULT_DISPLAY_SETTINGS;
 
             constructor() {
                 this.setupListeners();
@@ -66,7 +79,7 @@ export default defineContentScript({
 
                 // Watch for novel selection changes
                 browser.storage.onChanged.addListener((changes, area) => {
-                    if (area === 'local' && changes.activeNovelSlug) {
+                    if (area === 'local' && (changes.activeNovelSlug || changes.highlightDisplaySettings)) {
                         this.init();
                     }
                 });
@@ -92,12 +105,29 @@ export default defineContentScript({
                 const tooltip = target.querySelector('.goldfish-tooltip') as HTMLElement;
                 if (!tooltip) return;
 
+                const config = getActiveConfig();
+                const container = config
+                    ? (target.closest(config.contentSelector) as HTMLElement | null) || document.querySelector(config.contentSelector) as HTMLElement | null
+                    : null;
                 const rect = target.getBoundingClientRect();
-                tooltip.classList.remove('bottom');
+                const bounds = (container || document.documentElement).getBoundingClientRect();
+                tooltip.classList.remove('bottom', 'align-left', 'align-right');
 
                 const tooltipHeight = tooltip.offsetHeight || 200;
+                const tooltipWidth = tooltip.offsetWidth || 280;
                 if (rect.top - tooltipHeight < 20) {
                     tooltip.classList.add('bottom');
+                }
+
+                const spaceOnLeft = rect.left - bounds.left;
+                const spaceOnRight = bounds.right - rect.right;
+                const halfTooltipWidth = tooltipWidth / 2;
+                const edgePadding = 24;
+
+                if (spaceOnLeft < halfTooltipWidth + edgePadding) {
+                    tooltip.classList.add('align-left');
+                } else if (spaceOnRight < halfTooltipWidth + edgePadding) {
+                    tooltip.classList.add('align-right');
                 }
             }
 
@@ -122,9 +152,15 @@ export default defineContentScript({
                 this.isProcessing = true;
 
                 try {
+                    const container = await this.waitForContainer(config.contentSelector);
+                    if (!container) return;
+
+                    this.clearHighlights(container);
+
                     const data = await browser.storage.local.get('activeNovelSlug');
                     const activeNovelSlug = data.activeNovelSlug as string;
                     if (!activeNovelSlug) return;
+                    this.displaySettings = await this.getDisplaySettings();
 
                     this.currentNovelSlug = activeNovelSlug;
                     const characters = await browser.runtime.sendMessage({
@@ -133,9 +169,6 @@ export default defineContentScript({
                     }) as Character[];
 
                     if (!characters || characters.length === 0) return;
-
-                    const container = await this.waitForContainer(config.contentSelector);
-                    if (!container) return;
 
                     this.injectStyles();
 
@@ -224,10 +257,43 @@ export default defineContentScript({
                 }
             }
 
+            private clearHighlights(container: HTMLElement) {
+                const highlights = Array.from(container.querySelectorAll('.goldfish-highlight'));
+                if (highlights.length === 0) return;
+
+                const parents = new Set<Node>();
+
+                for (const highlight of highlights) {
+                    const labelNode = Array.from(highlight.childNodes).find(
+                        (node) => node.nodeType === Node.TEXT_NODE
+                    );
+                    const label = labelNode?.textContent || "";
+
+                    parents.add(highlight.parentNode as Node);
+                    highlight.replaceWith(document.createTextNode(label));
+                }
+
+                for (const parent of parents) {
+                    parent.normalize();
+                }
+            }
+
             private createHighlightNode(text: string, char: Character): HTMLElement {
                 const span = document.createElement('span');
                 span.className = 'goldfish-highlight';
                 span.textContent = text;
+                span.style.fontWeight = this.displaySettings.fontWeight;
+                span.style.fontStyle = this.displaySettings.fontStyle;
+
+                const color = char.highlightColor || "#c5daff";
+                const showUnderline = this.displaySettings.underlineStyle !== "none";
+
+                span.style.textDecoration = showUnderline
+                    ? `${color} ${this.displaySettings.underlineStyle} underline`
+                    : "none";
+                span.style.textDecorationColor = color;
+                span.style.backgroundColor = "transparent";
+                span.style.boxShadow = "none";
 
                 const tooltip = document.createElement('span');
                 tooltip.className = 'goldfish-tooltip';
@@ -245,6 +311,17 @@ export default defineContentScript({
 
                 span.appendChild(tooltip);
                 return span;
+            }
+
+            private async getDisplaySettings(): Promise<HighlightDisplaySettings> {
+                const { highlightDisplaySettings } = await browser.storage.local.get("highlightDisplaySettings");
+                const raw = highlightDisplaySettings as Partial<HighlightDisplaySettings> | undefined;
+
+                return {
+                    fontWeight: raw?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
+                    fontStyle: raw?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
+                    underlineStyle: raw?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
+                };
             }
 
             private injectStyles() {
@@ -268,6 +345,7 @@ export default defineContentScript({
                         position: absolute !important;
                         bottom: 125% !important;
                         left: 50% !important;
+                        right: auto !important;
                         transform: translateX(-50%) !important;
                         background-color: rgba(20, 20, 23, 0.95) !important;
                         color: #f0f0f0 !important;
@@ -295,9 +373,30 @@ export default defineContentScript({
                         opacity: 1 !important;
                         transform: translateX(-50%) translateY(-5px) !important;
                     }
+                    .goldfish-tooltip.align-left {
+                        left: 0 !important;
+                        right: auto !important;
+                        transform: translateX(0) !important;
+                    }
+                    .goldfish-tooltip.align-right {
+                        left: auto !important;
+                        right: 0 !important;
+                        transform: translateX(0) !important;
+                    }
+                    .goldfish-highlight:hover .goldfish-tooltip.align-left,
+                    .goldfish-highlight:hover .goldfish-tooltip.align-right {
+                        transform: translateY(-5px) !important;
+                    }
                     .goldfish-tooltip.bottom {
                         bottom: auto !important;
                         top: 125% !important;
+                    }
+                    .goldfish-highlight:hover .goldfish-tooltip.bottom.align-left,
+                    .goldfish-highlight:hover .goldfish-tooltip.bottom.align-right {
+                        transform: translateY(5px) !important;
+                    }
+                    .goldfish-highlight:hover .goldfish-tooltip.bottom {
+                        transform: translateX(-50%) translateY(5px) !important;
                     }
                     .goldfish-tooltip img {
                         max-width: 150px !important;

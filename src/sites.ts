@@ -22,13 +22,26 @@ export const SITES = [
     {
         hostname: "utoon.net",
         contentSelector: "div.reading-content"
+    },
+    {
+        hostname: "freewebnovel.com",
+        contentSelector: "div.txt"
     }
 
 ] as const;
 
 const normalizeHostname = (hostname: string) => hostname.trim().toLowerCase();
 
-export const MATCH_PATTERNS = SITES.map((s) => `*://*.${normalizeHostname(s.hostname)}/*`);
+export const API_HOST_PERMISSIONS = [
+    'http://127.0.0.1/*',
+    'http://localhost/*'
+] as const;
+
+export const SITE_HOST_PERMISSIONS = SITES.map(
+    (site) => `*://*.${normalizeHostname(site.hostname)}/*`
+);
+
+export const MATCH_PATTERNS = SITE_HOST_PERMISSIONS;
 
 export const getActiveConfig = () =>
     SITES.find((s) => window.location.hostname.includes(normalizeHostname(s.hostname)));

@@ -22,7 +22,8 @@ export default defineBackground(() => {
                         name: message.name,
                         aliases: message.aliases || [],
                         description: message.description || "",
-                        imageUrl: message.imageUrl || ""
+                        imageUrl: message.imageUrl || "",
+                        highlightColor: message.highlightColor || ""
                     });
                     return { success: true };
 

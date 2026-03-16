@@ -9,6 +9,7 @@
 </head>
 
 <body>
+    <div class="page-shell">
     <div class="main">
         <div id="novelToast" class="toast hidden"></div> <!--popup when new novel is created-->
 
@@ -41,10 +42,67 @@
 
         <textarea id="charDesc" placeholder="Character Description..."></textarea>
         <input type="text" id="charImgUrl" placeholder="Image URL">
+        <div class="color-picker-group">
+            <div class="color-picker-label">Highlight Color</div>
+            <div id="charHighlightPalette" class="color-palette">
+                <button type="button" class="color-swatch selected" data-color="#c5daff" style="--swatch-color: #c5daff;" title="Default blue"></button>
+                <button type="button" class="color-swatch" data-color="#ff8a80" style="--swatch-color: #ff8a80;" title="Soft red"></button>
+                <button type="button" class="color-swatch" data-color="#ffd180" style="--swatch-color: #ffd180;" title="Warm gold"></button>
+                <button type="button" class="color-swatch" data-color="#a5d6a7" style="--swatch-color: #a5d6a7;" title="Green"></button>
+                <button type="button" class="color-swatch" data-color="#80deea" style="--swatch-color: #80deea;" title="Cyan"></button>
+                <button type="button" class="color-swatch" data-color="#b39ddb" style="--swatch-color: #b39ddb;" title="Lavender"></button>
+                <button type="button" class="color-swatch" data-color="#f48fb1" style="--swatch-color: #f48fb1;" title="Pink"></button>
+                <button type="button" class="color-swatch" data-color="#e0e0e0" style="--swatch-color: #e0e0e0;" title="Light gray"></button>
+            </div>
+            <input type="text" id="charHighlightColor" placeholder="#c5daff">
+        </div>
 
         <button id="addCharBtn">Add Character</button>
 
       </div>
+
+      <aside class="settings-panel">
+        <div class="settings-card">
+            <div class="settings-kicker">Display Settings</div>
+            <h2>Reader Highlight Style</h2>
+            <p class="settings-copy">These only affect how highlights render on this device.</p>
+
+            <label class="settings-field">
+                <span>Underline</span>
+                <select id="displayUnderlineStyle">
+                    <option value="none">No underline</option>
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="wavy">Wavy</option>
+                </select>
+                <small class="settings-help">Choose how character names are underlined while reading.</small>
+            </label>
+
+            <label class="settings-field">
+                <span>Text Style</span>
+                <select id="displayTextStyle">
+                    <option value="700-normal">Bold</option>
+                    <option value="600-normal">Semibold</option>
+                    <option value="400-normal">Normal</option>
+                    <option value="400-italic">Italic</option>
+                    <option value="600-italic">Semibold Italic</option>
+                    <option value="700-italic">Bold Italic</option>
+                </select>
+                <small class="settings-help">Controls font weight and italic styling for highlighted names.</small>
+            </label>
+
+            <div class="settings-preview">
+                <div class="settings-preview-label">Preview</div>
+                <div class="settings-preview-copy">
+                    The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
+                </div>
+            </div>
+
+            <div id="displaySettingsStatus" class="settings-status hidden">Saved</div>
+        </div>
+      </aside>
+    </div>
 
   <script type="module" src="./main.ts"></script>
 </body>

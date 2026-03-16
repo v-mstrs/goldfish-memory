@@ -17,11 +17,11 @@ function injectModalStyles() {
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(3px);
+            background: rgba(10, 12, 16, 0.42);
+            backdrop-filter: blur(2px);
             z-index: 2147483647;
             opacity: 0;
-            transition: opacity 0.2s ease-in-out;
+            transition: opacity 0.22s ease-in-out;
             display: block; /* Allows absolute positioning of children */
         }
         .goldfish-modal-overlay.visible {
@@ -29,36 +29,69 @@ function injectModalStyles() {
         }
         .goldfish-modal {
             position: absolute;
-            background: #1e1e1e;
-            color: #e0e0e0;
-            width: 340px;
+            background: #161a21;
+            color: #e7edf7;
+            width: 360px;
             max-width: 90vw;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            border-radius: 10px;
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             font-size: 14px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transform: scale(0.95);
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: scale(0.96) translateY(6px);
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .goldfish-modal-overlay.visible .goldfish-modal {
-            transform: scale(1);
+            transform: scale(1) translateY(0);
         }
         .goldfish-modal-header {
-            padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-weight: 600;
-            font-size: 15px;
+            padding: 18px 18px 14px;
+            background: #1b2029;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .goldfish-modal-eyebrow {
+            margin-bottom: 8px;
+            color: #90a0b8;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .goldfish-modal-title {
             color: #fff;
+            font-weight: 650;
+            font-size: 17px;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .goldfish-modal-subtitle {
+            margin-top: 8px;
+            color: #aab4c3;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .goldfish-name-pill {
+            margin-top: 12px;
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #d6deea;
+            font-size: 12px;
+            font-weight: 600;
         }
         .goldfish-modal-body {
-            padding: 16px;
+            padding: 16px 18px 18px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
         .goldfish-input-group {
             display: flex;
@@ -67,63 +100,81 @@ function injectModalStyles() {
         }
         .goldfish-label {
             font-size: 12px;
-            color: #aaa;
-            font-weight: 500;
-            margin-left: 2px;
+            color: #a7b1c0;
+            font-weight: 600;
+            margin-left: 1px;
         }
         .goldfish-input {
-            background: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 6px;
-            padding: 8px 10px;
+            background: #20252f;
+            border: 1px solid #323947;
+            border-radius: 7px;
+            padding: 10px 12px;
             color: #fff;
             font-size: 13px;
             font-family: inherit;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
             width: 100%;
             box-sizing: border-box;
         }
+        .goldfish-input::placeholder {
+            color: #79859a;
+        }
         .goldfish-input:focus {
-            border-color: #6495ED;
-            box-shadow: 0 0 0 2px rgba(100, 149, 237, 0.2);
+            background: #242a35;
+            border-color: #5b88d6;
+            box-shadow: 0 0 0 2px rgba(91, 136, 214, 0.18);
         }
         .goldfish-textarea {
             resize: vertical;
-            min-height: 60px;
-            line-height: 1.4;
+            min-height: 84px;
+            line-height: 1.45;
+        }
+        .goldfish-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 92px;
+            gap: 12px;
+            align-items: end;
+        }
+        .goldfish-color-input {
+            padding: 4px;
+            height: 42px;
+            cursor: pointer;
         }
         .goldfish-modal-footer {
-            padding: 12px 16px;
+            padding: 14px 18px 16px;
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            background: rgba(0, 0, 0, 0.2);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: #141820;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
         .goldfish-btn {
-            padding: 6px 14px;
-            border-radius: 6px;
-            border: none;
+            min-width: 92px;
+            padding: 9px 16px;
+            border-radius: 7px;
+            border: 1px solid transparent;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
         }
         .goldfish-btn-secondary {
-            background: transparent;
-            color: #aaa;
+            background: #212733;
+            color: #b8c4d8;
+            border-color: #343d4d;
         }
         .goldfish-btn-secondary:hover {
             color: #fff;
-            background: rgba(255, 255, 255, 0.08);
+            background: #283040;
         }
         .goldfish-btn-primary {
-            background: #6495ED;
+            background: #4f79c7;
             color: #fff;
+            box-shadow: none;
         }
         .goldfish-btn-primary:hover {
-            background: #5b89db;
+            background: #5b88d6;
         }
         .goldfish-btn-primary:active {
             transform: translateY(1px);
@@ -156,7 +207,27 @@ export function showAddCharacterModal(name: string, novelSlug: string, selection
     // Header
     const header = document.createElement('div');
     header.className = 'goldfish-modal-header';
-    header.textContent = name;
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'goldfish-modal-eyebrow';
+    eyebrow.textContent = 'Selection Capture';
+
+    const title = document.createElement('div');
+    title.className = 'goldfish-modal-title';
+    title.textContent = 'Add character memory';
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'goldfish-modal-subtitle';
+    subtitle.textContent = 'Save a quick reminder for this name so future chapters are easier to follow.';
+
+    const pill = document.createElement('div');
+    pill.className = 'goldfish-name-pill';
+    pill.textContent = name;
+
+    header.appendChild(eyebrow);
+    header.appendChild(title);
+    header.appendChild(subtitle);
+    header.appendChild(pill);
     modal.appendChild(header);
 
     // Body
@@ -184,10 +255,20 @@ export function showAddCharacterModal(name: string, novelSlug: string, selection
     const descField = createField('Description', 'Who is this character?', 'textarea');
     const aliasField = createField('Aliases', 'Nicknames, comma separated', 'text', true);
     const imgField = createField('Image URL', 'https://...', 'text', true);
+    const colorField = createField('Highlight Color', '#c5daff', 'text', true);
+    colorField.input.setAttribute('type', 'color');
+    colorField.input.classList.add('goldfish-color-input');
+    colorField.input.value = '#c5daff';
 
     body.appendChild(descField.group);
     body.appendChild(aliasField.group);
-    body.appendChild(imgField.group);
+
+    const mediaRow = document.createElement('div');
+    mediaRow.className = 'goldfish-row';
+    mediaRow.appendChild(imgField.group);
+    mediaRow.appendChild(colorField.group);
+
+    body.appendChild(mediaRow);
     modal.appendChild(body);
 
     // Footer
@@ -216,6 +297,7 @@ export function showAddCharacterModal(name: string, novelSlug: string, selection
         const description = descField.input.value.trim();
         const aliases = aliasField.input.value.split(',').map(s => s.trim()).filter(Boolean);
         const imageUrl = imgField.input.value.trim();
+        const highlightColor = colorField.input.value.trim();
 
         if (!description && !imageUrl && !aliases.length) {
             descField.input.style.borderColor = '#ff4d4f';
@@ -234,7 +316,8 @@ export function showAddCharacterModal(name: string, novelSlug: string, selection
                 name,
                 description,
                 aliases,
-                imageUrl
+                imageUrl,
+                highlightColor
             });
             close();
         } catch (e) {

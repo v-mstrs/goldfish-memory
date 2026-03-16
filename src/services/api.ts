@@ -11,6 +11,7 @@ export interface Character {
     aliases: string[];
     description: string;
     imageUrl?: string;
+    highlightColor?: string;
 }
 
 interface NovelDetailResponse {
@@ -21,6 +22,7 @@ interface NovelDetailResponse {
         name: string;
         description: string;
         image_url?: string | null;
+        highlight_color?: string | null;
         aliases: string[];
     }>;
 }
@@ -93,7 +95,8 @@ export class ApiService {
             name: char.name,
             aliases: char.aliases || [],
             description: char.description || "",
-            imageUrl: char.image_url || ""
+            imageUrl: char.image_url || "",
+            highlightColor: char.highlight_color || ""
         }));
     }
 
@@ -104,7 +107,8 @@ export class ApiService {
                 name: character.name.trim(),
                 aliases: character.aliases.map(alias => alias.trim()).filter(Boolean),
                 description: character.description.trim(),
-                image_url: character.imageUrl?.trim() || ""
+                image_url: character.imageUrl?.trim() || "",
+                highlight_color: character.highlightColor?.trim() || ""
             })
         });
         return result.id;

@@ -11,18 +11,23 @@ const menusApi = browser.menus || browser.contextMenus;
 function initContextMenu() {
     if (!menusApi) return;
 
-    browser.runtime.onInstalled.addListener(() => {
-        menusApi.removeAll().then(() => {
+    const registerMenu = async () => {
+        try {
+            await menusApi.removeAll();
             menusApi.create({
                 id: MENU_ID,
                 title: "Add Character",
                 contexts: ["selection"],
                 documentUrlPatterns: MATCH_PATTERNS
             });
-        }).catch(() => {
+        } catch {
             // Ignore setup errors
-        });
-    });
+        }
+    };
+
+    void registerMenu();
+    browser.runtime.onInstalled.addListener(() => { void registerMenu(); });
+    browser.runtime.onStartup?.addListener(() => { void registerMenu(); });
 
     menusApi.onClicked.addListener((info, tab) => {
         if (info.menuItemId === MENU_ID && tab?.id) {
