@@ -13,6 +13,8 @@ const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
     fontStyle: "normal"
 };
 
+const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
+
 /**
  * GoldfishPopup handles all UI interactions within the extension popup.
  */
@@ -22,6 +24,7 @@ class GoldfishPopup {
             optionsBtn: document.getElementById("optionsBtn") as HTMLButtonElement,
         },
         settings: {
+            apiBaseUrl: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
             textStyle: document.getElementById("displayTextStyle") as HTMLSelectElement,
             underline: document.getElementById("displayUnderlineStyle") as HTMLSelectElement,
             previewWord: document.getElementById("highlightPreviewWord") as HTMLSpanElement,
@@ -61,6 +64,7 @@ class GoldfishPopup {
     private async init() {
         await this.verifyBackgroundConnection();
         await this.refreshNovelDropdown();
+        await this.loadBackendSettings();
         await this.loadDisplaySettings();
         // Small delay to ensure browser focus isn't interrupted by storage loading
         setTimeout(() => this.syncDraft("load"), 100);
@@ -114,6 +118,10 @@ class GoldfishPopup {
         this.ui.char.color.addEventListener("change", () => {
             this.setHighlightColor(this.ui.char.color.value);
             void this.syncDraft("save");
+        });
+
+        this.ui.settings.apiBaseUrl.addEventListener("change", () => {
+            void this.saveBackendSettings();
         });
 
         [
@@ -207,7 +215,30 @@ class GoldfishPopup {
 
         await browser.storage.local.set({ highlightDisplaySettings: settings });
         this.renderHighlightPreview(settings);
-        this.showSettingsSaved();
+        this.showSettingsSaved("Display settings saved");
+        await this.handleRescan();
+    }
+
+    private async loadBackendSettings() {
+        const { apiBaseUrl } = await browser.storage.local.get("apiBaseUrl");
+        this.ui.settings.apiBaseUrl.value = typeof apiBaseUrl === "string" && apiBaseUrl.trim()
+            ? apiBaseUrl.trim()
+            : DEFAULT_API_BASE_URL;
+    }
+
+    private async saveBackendSettings() {
+        const candidate = this.ui.settings.apiBaseUrl.value.trim();
+        const normalized = candidate.replace(/\/+$/, "");
+
+        if (!/^https?:\/\/.+/i.test(normalized)) {
+            this.showSettingsSaved("Use a full URL like http://127.0.0.1:8000", true);
+            this.ui.settings.apiBaseUrl.value = normalized || DEFAULT_API_BASE_URL;
+            return;
+        }
+
+        await browser.storage.local.set({ apiBaseUrl: normalized });
+        this.ui.settings.apiBaseUrl.value = normalized;
+        this.showSettingsSaved("Backend URL saved");
         await this.handleRescan();
     }
 
@@ -232,9 +263,10 @@ class GoldfishPopup {
         };
     }
 
-    private showSettingsSaved() {
+    private showSettingsSaved(message: string, isError = false) {
         if (this.settingsStatusTimeout) clearTimeout(this.settingsStatusTimeout);
-        this.ui.settings.status.textContent = "Saved";
+        this.ui.settings.status.textContent = message;
+        this.ui.settings.status.classList.toggle("error", isError);
         this.ui.settings.status.classList.remove("hidden");
         this.settingsStatusTimeout = setTimeout(() => {
             this.ui.settings.status.classList.add("hidden");

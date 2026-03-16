@@ -18,7 +18,14 @@ This branch expects a backend API instead of local Dexie storage.
 
 - Default base URL: `http://127.0.0.1:8000`
 - API client location: `src/services/api.ts`
-- Set a custom URL at runtime via extension storage key: `apiBaseUrl`
+- Set a custom URL at runtime via the extension options page or storage key: `apiBaseUrl`
+
+## Privacy
+
+- Privacy policy: `PRIVACY.md`
+- AMO submission notes: `AMO-SUBMISSION-NOTES.md`
+
+Goldfish Memory stores local UI settings in extension storage and can send character data to a user-configured backend API. Selected page text is only sent when the user explicitly uses the add-character flow from selected text.
 
 ## Setup
 

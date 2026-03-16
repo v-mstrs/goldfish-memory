@@ -364,6 +364,10 @@ textarea::placeholder {
     color: #94c9a7;
 }
 
+.settings-status.error {
+    color: #f0a5a5;
+}
+
 @media (min-width: 450px) {
     .page-shell {
         display: flex;
