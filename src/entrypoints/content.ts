@@ -5,6 +5,7 @@ import { type Character } from "../services/api";
 import { showAddCharacterModal } from "../modal";
 
 interface HighlightDisplaySettings {
+    fontSizePx: number;
     fontWeight: "400" | "600" | "700";
     fontStyle: "normal" | "italic";
     underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
@@ -12,8 +13,10 @@ interface HighlightDisplaySettings {
 }
 
 const DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR = 5;
+const DEFAULT_HIGHLIGHT_FONT_SIZE_PX = 16;
 
 const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
+    fontSizePx: DEFAULT_HIGHLIGHT_FONT_SIZE_PX,
     fontWeight: "700",
     underlineStyle: "wavy",
     fontStyle: "normal",
@@ -285,6 +288,7 @@ export default defineContentScript({
                 const span = document.createElement('span');
                 span.className = 'goldfish-highlight';
                 span.textContent = text;
+                span.style.fontSize = `${this.displaySettings.fontSizePx}px`;
                 span.style.fontWeight = this.displaySettings.fontWeight;
                 span.style.fontStyle = this.displaySettings.fontStyle;
 
@@ -322,11 +326,21 @@ export default defineContentScript({
                 const raw = highlightDisplaySettings as Partial<HighlightDisplaySettings> | undefined;
 
                 return {
+                    fontSizePx: this.normalizeFontSize(raw?.fontSizePx),
                     fontWeight: raw?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
                     fontStyle: raw?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
                     underlineStyle: raw?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
                     highlightLimitPerChar: this.normalizeHighlightLimit(raw?.highlightLimitPerChar),
                 };
+            }
+
+            private normalizeFontSize(value: unknown): number {
+                if (typeof value !== "number" || !Number.isFinite(value)) {
+                    return DEFAULT_HIGHLIGHT_FONT_SIZE_PX;
+                }
+
+                const normalized = Math.floor(value);
+                return normalized >= 10 && normalized <= 36 ? normalized : DEFAULT_HIGHLIGHT_FONT_SIZE_PX;
             }
 
             private normalizeHighlightLimit(value: unknown): number {

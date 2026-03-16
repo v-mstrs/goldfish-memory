@@ -2,6 +2,7 @@ import { apiService } from "../../services/api";
 import { browser } from "wxt/browser";
 
 interface HighlightDisplaySettings {
+    fontSizePx: number;
     fontWeight: "400" | "600" | "700";
     fontStyle: "normal" | "italic";
     underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
@@ -22,9 +23,13 @@ type DraftMode = "save" | "load";
 const DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR = 5;
 const MIN_HIGHLIGHT_LIMIT_PER_CHAR = 1;
 const MAX_HIGHLIGHT_LIMIT_PER_CHAR = 50;
+const DEFAULT_HIGHLIGHT_FONT_SIZE_PX = 16;
+const MIN_HIGHLIGHT_FONT_SIZE_PX = 10;
+const MAX_HIGHLIGHT_FONT_SIZE_PX = 36;
 const DEFAULT_HIGHLIGHT_COLOR = "#c5daff";
 
 const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
+    fontSizePx: DEFAULT_HIGHLIGHT_FONT_SIZE_PX,
     fontWeight: "700",
     underlineStyle: "wavy",
     fontStyle: "normal",
@@ -40,6 +45,7 @@ class GoldfishPopup {
         },
         settings: {
             apiBaseUrl: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
+            fontSize: document.getElementById("displayFontSize") as HTMLInputElement,
             textStyle: document.getElementById("displayTextStyle") as HTMLSelectElement,
             underline: document.getElementById("displayUnderlineStyle") as HTMLSelectElement,
             highlightLimit: document.getElementById("displayHighlightLimit") as HTMLInputElement,
@@ -133,6 +139,7 @@ class GoldfishPopup {
         });
 
         [
+            this.ui.settings.fontSize,
             this.ui.settings.textStyle,
             this.ui.settings.underline,
             this.ui.settings.highlightLimit,
@@ -227,6 +234,7 @@ class GoldfishPopup {
         const settings = this.withDisplayDefaults(highlightDisplaySettings as Partial<HighlightDisplaySettings> | undefined);
 
         this.ui.settings.textStyle.value = `${settings.fontWeight}-${settings.fontStyle}`;
+        this.ui.settings.fontSize.value = String(settings.fontSizePx);
         this.ui.settings.underline.value = settings.underlineStyle;
         this.ui.settings.highlightLimit.value = String(settings.highlightLimitPerChar);
         this.renderHighlightPreview(settings);
@@ -271,6 +279,7 @@ class GoldfishPopup {
         ];
 
         return {
+            fontSizePx: this.normalizeFontSize(this.ui.settings.fontSize.value),
             fontWeight,
             fontStyle,
             underlineStyle: this.ui.settings.underline.value as HighlightDisplaySettings["underlineStyle"],
@@ -280,11 +289,27 @@ class GoldfishPopup {
 
     private withDisplayDefaults(value?: Partial<HighlightDisplaySettings>): HighlightDisplaySettings {
         return {
+            fontSizePx: this.normalizeFontSize(value?.fontSizePx),
             fontWeight: value?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
             fontStyle: value?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
             underlineStyle: value?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
             highlightLimitPerChar: this.normalizeHighlightLimit(value?.highlightLimitPerChar),
         };
+    }
+
+    private normalizeFontSize(value: unknown): number {
+        const candidate = typeof value === "number"
+            ? value
+            : Number.parseInt(String(value ?? ""), 10);
+
+        if (!Number.isFinite(candidate)) {
+            return DEFAULT_HIGHLIGHT_FONT_SIZE_PX;
+        }
+
+        return Math.min(
+            MAX_HIGHLIGHT_FONT_SIZE_PX,
+            Math.max(MIN_HIGHLIGHT_FONT_SIZE_PX, Math.floor(candidate))
+        );
     }
 
     private normalizeHighlightLimit(value: unknown): number {
@@ -315,8 +340,10 @@ class GoldfishPopup {
     private renderHighlightPreview(settings: HighlightDisplaySettings) {
         const preview = this.ui.settings.previewWord;
         const previewColor = this.normalizeHexColor(this.ui.char.color.value) || DEFAULT_HIGHLIGHT_COLOR;
+        this.ui.settings.fontSize.value = String(settings.fontSizePx);
         this.ui.settings.highlightLimit.value = String(settings.highlightLimitPerChar);
 
+        preview.style.fontSize = `${settings.fontSizePx}px`;
         preview.style.fontWeight = settings.fontWeight;
         preview.style.fontStyle = settings.fontStyle;
         preview.style.color = previewColor;

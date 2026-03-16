@@ -173,19 +173,6 @@ textarea {
     font-size: 13px;
 }
 
-.page-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.page-actions button {
-    width: 152px;
-    min-width: 152px;
-    max-width: 152px;
-    white-space: nowrap;
-}
-
 .primary-button {
     background-color: #4c79c7;
     border-color: #4c79c7;
@@ -261,6 +248,23 @@ textarea {
     gap: 6px;
 }
 
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-field span {
+    font-size: 12px;
+    color: #dce3ee;
+}
+
+.settings-help {
+    color: #8e99aa;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 .color-picker-label {
     font-size: 12px;
     color: #adb6c3;
@@ -324,6 +328,7 @@ textarea {
 .status-pill {
     font-size: 12px;
     color: #94c9a7;
+    min-height: 16px;
 }
 
 .status-pill.error {
@@ -523,17 +528,6 @@ textarea {
 
     .title-block {
         align-items: center;
-    }
-
-    .page-actions {
-        width: 100%;
-    }
-
-    .page-actions button {
-        width: 152px;
-        min-width: 152px;
-        max-width: 152px;
-        align-self: flex-start;
     }
 
     .stats-row {

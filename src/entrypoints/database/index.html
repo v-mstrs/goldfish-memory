@@ -20,11 +20,6 @@
                             <p class="page-subtitle">Edit saved novels and characters without leaving the extension.</p>
                         </div>
                     </div>
-
-                    <div class="page-actions">
-                        <button id="refreshBtn" class="ghost-button" type="button">Refresh</button>
-                        <button id="rescanBtn" class="primary-button" type="button">Rescan Active Tab</button>
-                    </div>
                 </div>
 
                 <div class="stats-row">
@@ -89,6 +84,53 @@
 
             <aside class="sidebar">
                 <section class="sidebar-panel stack">
+                    <div class="panel-title">Highlight Settings</div>
+
+                    <label class="settings-field">
+                        <span>Font Size</span>
+                        <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">
+                        <small class="settings-help">Sets the size of highlighted names while reading.</small>
+                    </label>
+
+                    <label class="settings-field">
+                        <span>Font Weight</span>
+                        <select id="displayFontWeight">
+                            <option value="700">Bold</option>
+                            <option value="600">Semibold</option>
+                            <option value="400">Normal</option>
+                        </select>
+                        <small class="settings-help">Choose how heavy the highlighted text should appear.</small>
+                    </label>
+
+                    <label class="settings-field">
+                        <span>Underline</span>
+                        <select id="displayUnderlineStyle">
+                            <option value="none">No underline</option>
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                            <option value="wavy">Wavy</option>
+                        </select>
+                        <small class="settings-help">Controls the underline style applied to highlighted names.</small>
+                    </label>
+
+                    <label class="settings-field">
+                        <span>Max Highlights Per Character</span>
+                        <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
+                        <small class="settings-help">Matches `DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR` and caps repeat highlights per page.</small>
+                    </label>
+
+                    <div class="settings-preview">
+                        <div class="settings-preview-label">Preview</div>
+                        <div class="settings-preview-copy">
+                            The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
+                        </div>
+                    </div>
+
+                    <div id="displaySettingsStatus" class="status-pill hidden"></div>
+                </section>
+
+                <section class="sidebar-panel stack">
                     <div class="panel-title">Add Novel</div>
 
                     <div>
@@ -136,14 +178,6 @@
                         </div>
                         <input id="charColorInput" type="text" value="#c5daff" placeholder="#c5daff">
                     </div>
-
-                    <div class="settings-preview">
-                        <div class="settings-preview-label">Preview</div>
-                        <div class="settings-preview-copy">
-                            The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
-                        </div>
-                    </div>
-
                     <button id="addCharacterBtn" class="primary-button" type="button">Add Character</button>
                 </section>
             </aside>

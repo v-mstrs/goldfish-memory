@@ -5,6 +5,28 @@ import { apiService, type Character, type Novel } from "../../services/api";
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 const DEFAULT_HIGHLIGHT_COLOR = "#c5daff";
+const DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR = 5;
+const MIN_HIGHLIGHT_LIMIT_PER_CHAR = 1;
+const MAX_HIGHLIGHT_LIMIT_PER_CHAR = 50;
+const DEFAULT_HIGHLIGHT_FONT_SIZE_PX = 16;
+const MIN_HIGHLIGHT_FONT_SIZE_PX = 10;
+const MAX_HIGHLIGHT_FONT_SIZE_PX = 36;
+
+interface HighlightDisplaySettings {
+    fontSizePx: number;
+    fontWeight: "400" | "600" | "700";
+    fontStyle: "normal" | "italic";
+    underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
+    highlightLimitPerChar: number;
+}
+
+const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
+    fontSizePx: DEFAULT_HIGHLIGHT_FONT_SIZE_PX,
+    fontWeight: "700",
+    fontStyle: "normal",
+    underlineStyle: "wavy",
+    highlightLimitPerChar: DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR,
+};
 
 interface CharacterRow {
     id: number;
@@ -23,6 +45,7 @@ class GoldfishDatabasePage {
     private currentNovelSlug = "";
     private currentRows: CharacterRow[] = [];
     private statusTimeout: ReturnType<typeof setTimeout> | null = null;
+    private displaySettingsStatusTimeout: ReturnType<typeof setTimeout> | null = null;
 
     private ui = {
         selectedNovelLabel: document.getElementById("selectedNovelLabel") as HTMLSpanElement,
@@ -33,8 +56,6 @@ class GoldfishDatabasePage {
         clearFilterBtn: document.getElementById("clearFilterBtn") as HTMLButtonElement,
         toggleAliasesColumn: document.getElementById("toggleAliasesColumn") as HTMLInputElement,
         toggleImageColumn: document.getElementById("toggleImageColumn") as HTMLInputElement,
-        refreshBtn: document.getElementById("refreshBtn") as HTMLButtonElement,
-        rescanBtn: document.getElementById("rescanBtn") as HTMLButtonElement,
         tableStatus: document.getElementById("tableStatus") as HTMLDivElement,
         newNovelInput: document.getElementById("newNovelInput") as HTMLInputElement,
         addNovelBtn: document.getElementById("addNovelBtn") as HTMLButtonElement,
@@ -44,7 +65,12 @@ class GoldfishDatabasePage {
         charImageInput: document.getElementById("charImageInput") as HTMLInputElement,
         charColorInput: document.getElementById("charColorInput") as HTMLInputElement,
         charHighlightPalette: document.getElementById("charHighlightPalette") as HTMLDivElement,
+        displayFontSize: document.getElementById("displayFontSize") as HTMLInputElement,
+        displayFontWeight: document.getElementById("displayFontWeight") as HTMLSelectElement,
+        displayUnderlineStyle: document.getElementById("displayUnderlineStyle") as HTMLSelectElement,
+        displayHighlightLimit: document.getElementById("displayHighlightLimit") as HTMLInputElement,
         highlightPreviewWord: document.getElementById("highlightPreviewWord") as HTMLSpanElement,
+        displaySettingsStatus: document.getElementById("displaySettingsStatus") as HTMLDivElement,
         addCharacterBtn: document.getElementById("addCharacterBtn") as HTMLButtonElement,
     };
 
@@ -57,6 +83,7 @@ class GoldfishDatabasePage {
         this.bindEvents();
         await this.loadApiBaseUrlLabel();
         await this.loadNovels();
+        await this.loadDisplaySettings();
         this.setHighlightColor(DEFAULT_HIGHLIGHT_COLOR);
     }
 
@@ -66,12 +93,18 @@ class GoldfishDatabasePage {
         this.ui.clearFilterBtn.addEventListener("click", () => this.clearSearchFilter());
         this.ui.toggleAliasesColumn.addEventListener("change", () => this.syncColumnVisibility());
         this.ui.toggleImageColumn.addEventListener("change", () => this.syncColumnVisibility());
-        this.ui.refreshBtn.addEventListener("click", () => void this.refreshCurrentNovel());
-        this.ui.rescanBtn.addEventListener("click", () => void this.handleRescan());
         this.ui.addNovelBtn.addEventListener("click", () => void this.handleAddNovel());
         this.ui.addCharacterBtn.addEventListener("click", () => void this.handleAddCharacter());
         this.ui.charHighlightPalette.addEventListener("click", (event) => this.handlePaletteClick(event));
         this.ui.charColorInput.addEventListener("input", () => this.handleHighlightColorInput());
+        [
+            this.ui.displayFontSize,
+            this.ui.displayFontWeight,
+            this.ui.displayUnderlineStyle,
+            this.ui.displayHighlightLimit,
+        ].forEach((field) => {
+            field.addEventListener("input", () => void this.saveDisplaySettings());
+        });
 
         this.ui.newNovelInput.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
@@ -88,6 +121,25 @@ class GoldfishDatabasePage {
         });
 
         this.setHighlightColor(this.ui.charColorInput.value);
+    }
+
+    private async loadDisplaySettings() {
+        const { highlightDisplaySettings } = await browser.storage.local.get("highlightDisplaySettings");
+        const settings = this.withDisplayDefaults(highlightDisplaySettings as Partial<HighlightDisplaySettings> | undefined);
+
+        this.ui.displayFontSize.value = String(settings.fontSizePx);
+        this.ui.displayFontWeight.value = settings.fontWeight;
+        this.ui.displayUnderlineStyle.value = settings.underlineStyle;
+        this.ui.displayHighlightLimit.value = String(settings.highlightLimitPerChar);
+        this.renderHighlightPreview(settings);
+    }
+
+    private async saveDisplaySettings() {
+        const settings = this.readDisplaySettingsFromForm();
+        await browser.storage.local.set({ highlightDisplaySettings: settings });
+        this.renderHighlightPreview(settings);
+        this.showDisplaySettingsStatus("Highlight settings saved");
+        await this.handleRescan();
     }
 
     private createTable() {
@@ -441,9 +493,7 @@ class GoldfishDatabasePage {
             button.setAttribute("aria-pressed", isSelected ? "true" : "false");
         });
 
-        this.ui.highlightPreviewWord.style.color = normalized;
-        this.ui.highlightPreviewWord.style.textDecoration = `${normalized} wavy underline`;
-        this.ui.highlightPreviewWord.style.textDecorationColor = normalized;
+        this.renderHighlightPreview(this.readDisplaySettingsFromForm(), normalized);
     }
 
     private handlePaletteClick(event: Event) {
@@ -456,6 +506,85 @@ class GoldfishDatabasePage {
 
     private normalizeColor(value: string | undefined): string {
         return this.normalizeHexColor(value) || DEFAULT_HIGHLIGHT_COLOR;
+    }
+
+    private readDisplaySettingsFromForm(): HighlightDisplaySettings {
+        return {
+            fontSizePx: this.normalizeFontSize(this.ui.displayFontSize.value),
+            fontWeight: this.ui.displayFontWeight.value as HighlightDisplaySettings["fontWeight"],
+            fontStyle: "normal",
+            underlineStyle: this.ui.displayUnderlineStyle.value as HighlightDisplaySettings["underlineStyle"],
+            highlightLimitPerChar: this.normalizeHighlightLimit(this.ui.displayHighlightLimit.value),
+        };
+    }
+
+    private withDisplayDefaults(value?: Partial<HighlightDisplaySettings>): HighlightDisplaySettings {
+        return {
+            fontSizePx: this.normalizeFontSize(value?.fontSizePx),
+            fontWeight: value?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
+            fontStyle: value?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
+            underlineStyle: value?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
+            highlightLimitPerChar: this.normalizeHighlightLimit(value?.highlightLimitPerChar),
+        };
+    }
+
+    private normalizeFontSize(value: unknown): number {
+        const candidate = typeof value === "number"
+            ? value
+            : Number.parseInt(String(value ?? ""), 10);
+
+        if (!Number.isFinite(candidate)) {
+            return DEFAULT_HIGHLIGHT_FONT_SIZE_PX;
+        }
+
+        return Math.min(
+            MAX_HIGHLIGHT_FONT_SIZE_PX,
+            Math.max(MIN_HIGHLIGHT_FONT_SIZE_PX, Math.floor(candidate))
+        );
+    }
+
+    private normalizeHighlightLimit(value: unknown): number {
+        const candidate = typeof value === "number"
+            ? value
+            : Number.parseInt(String(value ?? ""), 10);
+
+        if (!Number.isFinite(candidate)) {
+            return DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR;
+        }
+
+        return Math.min(
+            MAX_HIGHLIGHT_LIMIT_PER_CHAR,
+            Math.max(MIN_HIGHLIGHT_LIMIT_PER_CHAR, Math.floor(candidate))
+        );
+    }
+
+    private renderHighlightPreview(settings: HighlightDisplaySettings, colorOverride?: string) {
+        const preview = this.ui.highlightPreviewWord;
+        const previewColor = this.normalizeHexColor(colorOverride || this.ui.charColorInput.value) || DEFAULT_HIGHLIGHT_COLOR;
+
+        this.ui.displayFontSize.value = String(settings.fontSizePx);
+        this.ui.displayHighlightLimit.value = String(settings.highlightLimitPerChar);
+
+        preview.style.fontSize = `${settings.fontSizePx}px`;
+        preview.style.fontWeight = settings.fontWeight;
+        preview.style.fontStyle = settings.fontStyle;
+        preview.style.color = previewColor;
+        preview.style.textDecoration = settings.underlineStyle === "none"
+            ? "none"
+            : `${previewColor} ${settings.underlineStyle} underline`;
+        preview.style.textDecorationColor = previewColor;
+    }
+
+    private showDisplaySettingsStatus(message: string, isError = false) {
+        if (this.displaySettingsStatusTimeout) clearTimeout(this.displaySettingsStatusTimeout);
+
+        this.ui.displaySettingsStatus.textContent = message;
+        this.ui.displaySettingsStatus.classList.toggle("error", isError);
+        this.ui.displaySettingsStatus.classList.remove("hidden");
+
+        this.displaySettingsStatusTimeout = setTimeout(() => {
+            this.ui.displaySettingsStatus.classList.add("hidden");
+        }, 1200);
     }
 
     private syncColumnVisibility() {
@@ -493,12 +622,6 @@ class GoldfishDatabasePage {
 
         return fallback;
     }
-
-    private async refreshCurrentNovel() {
-        await this.loadApiBaseUrlLabel();
-        await this.loadNovels(this.currentNovelSlug);
-    }
-
     private async handleRescan() {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         if (!tabs[0]?.id) return;
