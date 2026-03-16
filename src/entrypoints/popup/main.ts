@@ -1,23 +1,38 @@
 import { apiService } from "../../services/api";
-import { browser } from 'wxt/browser';
+import { browser } from "wxt/browser";
 
 interface HighlightDisplaySettings {
     fontWeight: "400" | "600" | "700";
     fontStyle: "normal" | "italic";
     underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
+    highlightLimitPerChar: number;
 }
+
+interface DraftState {
+    selectedNovel?: string;
+    charName?: string;
+    charAliases?: string;
+    charDesc?: string;
+    charImg?: string;
+    charColor?: string;
+}
+
+type DraftMode = "save" | "load";
+
+const DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR = 5;
+const MIN_HIGHLIGHT_LIMIT_PER_CHAR = 1;
+const MAX_HIGHLIGHT_LIMIT_PER_CHAR = 50;
+const DEFAULT_HIGHLIGHT_COLOR = "#c5daff";
 
 const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
     fontWeight: "700",
     underlineStyle: "wavy",
-    fontStyle: "normal"
+    fontStyle: "normal",
+    highlightLimitPerChar: DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR,
 };
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 
-/**
- * GoldfishPopup handles all UI interactions within the extension popup.
- */
 class GoldfishPopup {
     private ui = {
         header: {
@@ -27,6 +42,7 @@ class GoldfishPopup {
             apiBaseUrl: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
             textStyle: document.getElementById("displayTextStyle") as HTMLSelectElement,
             underline: document.getElementById("displayUnderlineStyle") as HTMLSelectElement,
+            highlightLimit: document.getElementById("displayHighlightLimit") as HTMLInputElement,
             previewWord: document.getElementById("highlightPreviewWord") as HTMLSpanElement,
             status: document.getElementById("displaySettingsStatus") as HTMLDivElement,
         },
@@ -58,7 +74,7 @@ class GoldfishPopup {
     private settingsStatusTimeout: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
-        this.init();
+        void this.init();
     }
 
     private async init() {
@@ -66,8 +82,7 @@ class GoldfishPopup {
         await this.refreshNovelDropdown();
         await this.loadBackendSettings();
         await this.loadDisplaySettings();
-        // Small delay to ensure browser focus isn't interrupted by storage loading
-        setTimeout(() => this.syncDraft("load"), 100);
+        await this.syncDraft("load");
         this.setupListeners();
     }
 
@@ -81,29 +96,22 @@ class GoldfishPopup {
         }
     }
 
-    /**
-     * Bind UI events to handlers.
-     */
     private setupListeners() {
-        this.ui.novel.saveBtn.addEventListener("click", () => this.handleSaveNovel());
-        this.ui.char.saveBtn.addEventListener("click", () => this.handleSaveCharacter());
+        this.ui.novel.saveBtn.addEventListener("click", () => void this.handleSaveNovel());
+        this.ui.char.saveBtn.addEventListener("click", () => void this.handleSaveCharacter());
         this.ui.novel.toggleBtn.addEventListener("click", () => this.toggleDrawer());
-        // Persist novel selection immediately
-        this.ui.novel.select.addEventListener("change", () => {
-            browser.storage.local.set({ activeNovelSlug: this.ui.novel.select.value });
-        });
+        this.ui.novel.select.addEventListener("change", () => void this.handleNovelSelectionChange());
 
-        // Persist draft with debounce to avoid blocking the UI thread
         const draftFields = [
-            this.ui.char.name, 
-            this.ui.char.aliases, 
-            this.ui.char.desc, 
+            this.ui.char.name,
+            this.ui.char.aliases,
+            this.ui.char.desc,
             this.ui.char.img,
             this.ui.char.color
         ];
-        
-        draftFields.forEach(el => {
-            el.addEventListener("input", () => this.syncDraft("save"));
+
+        draftFields.forEach((el) => {
+            el.addEventListener("input", () => void this.syncDraft("save"));
         });
 
         this.ui.char.palette.addEventListener("click", (event) => {
@@ -111,11 +119,11 @@ class GoldfishPopup {
             const swatch = target.closest(".color-swatch") as HTMLButtonElement | null;
             if (!swatch) return;
 
-            this.setHighlightColor(swatch.dataset.color || "#c5daff");
+            this.setHighlightColor(swatch.dataset.color || DEFAULT_HIGHLIGHT_COLOR);
             void this.syncDraft("save");
         });
 
-        this.ui.char.color.addEventListener("change", () => {
+        this.ui.char.color.addEventListener("input", () => {
             this.setHighlightColor(this.ui.char.color.value);
             void this.syncDraft("save");
         });
@@ -127,39 +135,42 @@ class GoldfishPopup {
         [
             this.ui.settings.textStyle,
             this.ui.settings.underline,
+            this.ui.settings.highlightLimit,
         ].forEach((el) => {
             el.addEventListener("input", () => {
                 void this.saveDisplaySettings();
             });
         });
 
-        // Enter key support for quick saving
         this.ui.novel.name.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                this.handleSaveNovel();
+                void this.handleSaveNovel();
             }
         });
+
         this.ui.char.name.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                this.handleSaveCharacter();
+                void this.handleSaveCharacter();
             }
         });
 
-        this.ui.logo.img.addEventListener("click", () => this.handleRescan());
+        this.ui.logo.img.addEventListener("click", () => void this.handleRescan());
         this.ui.header.optionsBtn.addEventListener("click", () => this.openOptions());
     }
 
-    /**
-     * Saves or loads the current form state to/from storage.
-     */
+    private async handleNovelSelectionChange() {
+        await browser.storage.local.set({ activeNovelSlug: this.ui.novel.select.value });
+    }
+
     private async syncDraft(mode: DraftMode) {
         if (mode === "save") {
             if (this.debounceTimeout) clearTimeout(this.debounceTimeout);
-            
+
             this.debounceTimeout = setTimeout(async () => {
                 const state: DraftState = {
+                    selectedNovel: this.ui.novel.select.value,
                     charName: this.ui.char.name.value,
                     charAliases: this.ui.char.aliases.value,
                     charDesc: this.ui.char.desc.value,
@@ -168,28 +179,38 @@ class GoldfishPopup {
                 };
                 await browser.storage.local.set({ draft: state });
             }, 500);
-        } else {
-            const data = await browser.storage.local.get(["draft", "activeNovelSlug"]);
-            if (data.activeNovelSlug) this.ui.novel.select.value = data.activeNovelSlug as string;
-
-            const s = data.draft as DraftState;
-            if (s) {
-                this.ui.char.name.value = s.charName || "";
-                this.ui.char.aliases.value = s.charAliases || "";
-                this.ui.char.desc.value = s.charDesc || "";
-                this.ui.char.img.value = s.charImg || "";
-                this.setHighlightColor(s.charColor || "#c5daff");
-            }
+            return;
         }
+
+        const data = await browser.storage.local.get(["draft", "activeNovelSlug"]);
+        const activeNovelSlug = typeof data.activeNovelSlug === "string" ? data.activeNovelSlug : "";
+        if (activeNovelSlug) {
+            this.ui.novel.select.value = activeNovelSlug;
+        }
+
+        const draft = data.draft as DraftState | undefined;
+        if (!draft) return;
+
+        if (!activeNovelSlug && draft.selectedNovel) {
+            this.ui.novel.select.value = draft.selectedNovel;
+        }
+
+        this.ui.char.name.value = draft.charName || "";
+        this.ui.char.aliases.value = draft.charAliases || "";
+        this.ui.char.desc.value = draft.charDesc || "";
+        this.ui.char.img.value = draft.charImg || "";
+        this.setHighlightColor(draft.charColor || DEFAULT_HIGHLIGHT_COLOR);
     }
 
     private setHighlightColor(value: string) {
-        const normalized = this.normalizeHexColor(value) || "#c5daff";
+        const normalized = this.normalizeHexColor(value) || DEFAULT_HIGHLIGHT_COLOR;
         this.ui.char.color.value = normalized;
 
         this.ui.char.palette.querySelectorAll(".color-swatch").forEach((swatch) => {
             const button = swatch as HTMLButtonElement;
-            button.classList.toggle("selected", button.dataset.color === normalized);
+            const isSelected = button.dataset.color === normalized;
+            button.classList.toggle("selected", isSelected);
+            button.setAttribute("aria-pressed", isSelected ? "true" : "false");
         });
 
         this.renderHighlightPreview(this.readDisplaySettingsFromForm());
@@ -207,6 +228,7 @@ class GoldfishPopup {
 
         this.ui.settings.textStyle.value = `${settings.fontWeight}-${settings.fontStyle}`;
         this.ui.settings.underline.value = settings.underlineStyle;
+        this.ui.settings.highlightLimit.value = String(settings.highlightLimitPerChar);
         this.renderHighlightPreview(settings);
     }
 
@@ -252,6 +274,7 @@ class GoldfishPopup {
             fontWeight,
             fontStyle,
             underlineStyle: this.ui.settings.underline.value as HighlightDisplaySettings["underlineStyle"],
+            highlightLimitPerChar: this.normalizeHighlightLimit(this.ui.settings.highlightLimit.value),
         };
     }
 
@@ -260,7 +283,23 @@ class GoldfishPopup {
             fontWeight: value?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
             fontStyle: value?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
             underlineStyle: value?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
+            highlightLimitPerChar: this.normalizeHighlightLimit(value?.highlightLimitPerChar),
         };
+    }
+
+    private normalizeHighlightLimit(value: unknown): number {
+        const candidate = typeof value === "number"
+            ? value
+            : Number.parseInt(String(value ?? ""), 10);
+
+        if (!Number.isFinite(candidate)) {
+            return DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR;
+        }
+
+        return Math.min(
+            MAX_HIGHLIGHT_LIMIT_PER_CHAR,
+            Math.max(MIN_HIGHLIGHT_LIMIT_PER_CHAR, Math.floor(candidate))
+        );
     }
 
     private showSettingsSaved(message: string, isError = false) {
@@ -275,7 +314,8 @@ class GoldfishPopup {
 
     private renderHighlightPreview(settings: HighlightDisplaySettings) {
         const preview = this.ui.settings.previewWord;
-        const previewColor = this.normalizeHexColor(this.ui.char.color.value) || "#c5daff";
+        const previewColor = this.normalizeHexColor(this.ui.char.color.value) || DEFAULT_HIGHLIGHT_COLOR;
+        this.ui.settings.highlightLimit.value = String(settings.highlightLimitPerChar);
 
         preview.style.fontWeight = settings.fontWeight;
         preview.style.fontStyle = settings.fontStyle;
@@ -299,14 +339,10 @@ class GoldfishPopup {
         this.ui.novel.arrow.textContent = hidden ? "▼" : "▲";
 
         if (!hidden) {
-            // Delay focus slightly to allow CSS transitions or layout updates
             setTimeout(() => this.ui.novel.name.focus(), 50);
         }
     }
 
-    /**
-     * Displays a temporary notification toast.
-     */
     private showStatus(message: string, type: "success" | "error" = "success") {
         if (this.toastTimeout) clearTimeout(this.toastTimeout);
 
@@ -325,13 +361,25 @@ class GoldfishPopup {
 
     private async refreshNovelDropdown(selectSlug?: string) {
         const novels = await apiService.getAllNovels();
-        this.ui.novel.select.length = 1; // Keep placeholder
+        const stored = await browser.storage.local.get("activeNovelSlug");
+        const preferredSlug = selectSlug
+            || this.ui.novel.select.value
+            || (stored.activeNovelSlug as string | undefined)
+            || "";
 
-        novels.forEach(novel => {
+        this.ui.novel.select.length = 1;
+
+        novels.forEach((novel) => {
             this.ui.novel.select.appendChild(new Option(novel.title, novel.slug));
         });
 
-        if (selectSlug) this.ui.novel.select.value = selectSlug;
+        const availableSlug = novels.some((novel) => novel.slug === preferredSlug)
+            ? preferredSlug
+            : novels[0]?.slug || "";
+
+        if (availableSlug) {
+            this.ui.novel.select.value = availableSlug;
+        }
     }
 
     private async handleSaveNovel() {
@@ -345,7 +393,7 @@ class GoldfishPopup {
             this.toggleDrawer(true);
             await this.refreshNovelDropdown(novel.slug);
             await browser.storage.local.set({ activeNovelSlug: novel.slug });
-            this.showStatus("✔ Novel added");
+            this.showStatus("Novel added");
         } catch (err) {
             this.showStatus("Error saving novel", "error");
         } finally {
@@ -358,36 +406,38 @@ class GoldfishPopup {
         const name = this.ui.char.name.value.trim();
         const desc = this.ui.char.desc.value.trim();
         const img = this.ui.char.img.value.trim();
-        const highlightColor = this.normalizeHexColor(this.ui.char.color.value) || "#c5daff";
-        const aliases = this.ui.char.aliases.value.split(",").map(a => a.trim()).filter(Boolean);
+        const highlightColor = this.normalizeHexColor(this.ui.char.color.value) || DEFAULT_HIGHLIGHT_COLOR;
+        const aliases = this.ui.char.aliases.value.split(",").map((alias) => alias.trim()).filter(Boolean);
 
-        if (!novelSlug) return this.showStatus("Select a novel first!", "error");
+        if (!novelSlug) return this.showStatus("Select a novel first", "error");
         if (!name || !desc) return this.showStatus("Name and description required", "error");
 
         try {
             this.ui.char.saveBtn.disabled = true;
             await apiService.addCharacter(novelSlug, {
-                name, 
-                aliases, 
-                description: desc, 
+                name,
+                aliases,
+                description: desc,
                 imageUrl: img,
                 highlightColor
             });
 
             const originalText = this.ui.char.saveBtn.textContent;
-            this.ui.char.saveBtn.textContent = "✓ Saved!";
+            this.ui.char.saveBtn.textContent = "Saved";
             this.ui.char.saveBtn.classList.add("success-state");
 
-            // Reset form
-            [this.ui.char.name, this.ui.char.aliases, this.ui.char.desc, this.ui.char.img].forEach(i => i.value = "");
-            this.setHighlightColor("#c5daff");
+            [this.ui.char.name, this.ui.char.aliases, this.ui.char.desc, this.ui.char.img].forEach((input) => {
+                input.value = "";
+            });
+            this.setHighlightColor(DEFAULT_HIGHLIGHT_COLOR);
             await browser.storage.local.remove("draft");
+            await this.handleRescan();
 
             setTimeout(() => {
                 this.ui.char.saveBtn.textContent = originalText;
                 this.ui.char.saveBtn.classList.remove("success-state");
                 this.ui.char.saveBtn.disabled = false;
-            }, 2000);
+            }, 1200);
         } catch (err) {
             this.showStatus("Failed to save character", "error");
             this.ui.char.saveBtn.disabled = false;
@@ -414,22 +464,9 @@ class GoldfishPopup {
     }
 
     private openOptions() {
-        // Updated to use WXT's output filename
-        browser.tabs.create({ url: browser.runtime.getURL("/popup.html") });
+        browser.tabs.create({ url: browser.runtime.getURL("/database.html") });
         window.close();
     }
 }
 
-interface DraftState {
-    selectedNovel?: string;
-    charName?: string;
-    charAliases?: string;
-    charDesc?: string;
-    charImg?: string;
-    charColor?: string;
-}
-
-type DraftMode = "save" | "load";
-
-// Start the popup logic
 document.addEventListener("DOMContentLoaded", () => new GoldfishPopup());

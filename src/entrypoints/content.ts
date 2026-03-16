@@ -8,12 +8,16 @@ interface HighlightDisplaySettings {
     fontWeight: "400" | "600" | "700";
     fontStyle: "normal" | "italic";
     underlineStyle: "none" | "solid" | "dashed" | "dotted" | "wavy";
+    highlightLimitPerChar: number;
 }
+
+const DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR = 5;
 
 const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
     fontWeight: "700",
     underlineStyle: "wavy",
     fontStyle: "normal",
+    highlightLimitPerChar: DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR,
 };
 
 export default defineContentScript({
@@ -28,7 +32,6 @@ export default defineContentScript({
             private currentNovelSlug: string | null = null;
             private isProcessing = false;
             private lastUrl = location.href;
-            private readonly HIGHLIGHT_LIMIT_PER_CHAR = 5;
             private displaySettings: HighlightDisplaySettings = DEFAULT_DISPLAY_SETTINGS;
 
             constructor() {
@@ -225,7 +228,7 @@ export default defineContentScript({
                             const char = nameToChar.get(matchedName);
                             const matchKey = char?.name?.toLowerCase() || "";
                             
-                            if (!char || (matchCounts.get(matchKey) || 0) >= this.HIGHLIGHT_LIMIT_PER_CHAR) {
+                            if (!char || (matchCounts.get(matchKey) || 0) >= this.displaySettings.highlightLimitPerChar) {
                                 fragments.push(text.substring(lastIndex, regex.lastIndex));
                                 lastIndex = regex.lastIndex;
                                 continue;
@@ -288,6 +291,7 @@ export default defineContentScript({
                 const color = char.highlightColor || "#c5daff";
                 const showUnderline = this.displaySettings.underlineStyle !== "none";
 
+                span.style.color = color;
                 span.style.textDecoration = showUnderline
                     ? `${color} ${this.displaySettings.underlineStyle} underline`
                     : "none";
@@ -321,7 +325,17 @@ export default defineContentScript({
                     fontWeight: raw?.fontWeight || DEFAULT_DISPLAY_SETTINGS.fontWeight,
                     fontStyle: raw?.fontStyle || DEFAULT_DISPLAY_SETTINGS.fontStyle,
                     underlineStyle: raw?.underlineStyle || DEFAULT_DISPLAY_SETTINGS.underlineStyle,
+                    highlightLimitPerChar: this.normalizeHighlightLimit(raw?.highlightLimitPerChar),
                 };
+            }
+
+            private normalizeHighlightLimit(value: unknown): number {
+                if (typeof value !== "number" || !Number.isFinite(value)) {
+                    return DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR;
+                }
+
+                const normalized = Math.floor(value);
+                return normalized > 0 ? normalized : DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR;
             }
 
             private injectStyles() {
@@ -333,13 +347,10 @@ export default defineContentScript({
                 style.textContent = `
                     .goldfish-highlight {
                         position: relative !important;
-                        color: #c5daffff !important;
                         display: inline !important;
                         padding: 0 2px !important;
                         border-radius: 3px !important;
-                        text-decoration: #c5daffff wavy underline;
                         cursor: help !important;
-                        font-weight: bold !important;
                     }
                     .goldfish-tooltip {
                         position: absolute !important;

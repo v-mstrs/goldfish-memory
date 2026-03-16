@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./style.css">
-    <title>Popup</title>
+    <title>goldfish memory</title>
 </head>
 
 <body>
@@ -15,7 +15,7 @@
 
         <div class="row" style="justify-content: center; position: relative;">
             <img src="goldfish-white.png" id="rescanPage" width="60px" height="auto">
-            <h1>GoldfishDB</h1>
+            <h1>goldfish memory</h1>
             <button id="optionsBtn" title="Open Options">⚙</button>
         </div>
 
@@ -31,7 +31,7 @@
         <div id="novelAddDrawer" class="hidden">
             <div class="row">
                 <input type="text" id="newNovel" placeholder="New Novel Name...">
-                <button id="saveNovelBtn" style="background: #007acc;">Add</button>
+                <button id="saveNovelBtn">Add</button>
             </div>
         </div>
 
@@ -96,6 +96,12 @@
                     <option value="700-italic">Bold Italic</option>
                 </select>
                 <small class="settings-help">Controls font weight and italic styling for highlighted names.</small>
+            </label>
+
+            <label class="settings-field">
+                <span>Max Highlights Per Character</span>
+                <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
+                <small class="settings-help">Caps how many times the same character can be highlighted on a page.</small>
             </label>
 
             <div class="settings-preview">

@@ -7,6 +7,7 @@ export interface Novel {
 }
 
 export interface Character {
+    id?: number;
     name: string;
     aliases: string[];
     description: string;
@@ -19,6 +20,7 @@ interface NovelDetailResponse {
     title: string;
     slug: string;
     characters: Array<{
+        id: number;
         name: string;
         description: string;
         image_url?: string | null;
@@ -29,6 +31,16 @@ interface NovelDetailResponse {
 
 interface CharacterResponse {
     id: number;
+}
+
+interface CharacterApiResponse {
+    id: number;
+    novel_id: number;
+    name: string;
+    description: string | null;
+    image_url?: string | null;
+    highlight_color?: string | null;
+    aliases: string[];
 }
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
@@ -92,6 +104,7 @@ export class ApiService {
     async getCharactersByNovelSlug(novelSlug: string): Promise<Character[]> {
         const detail = await this.request<NovelDetailResponse>(`/novels/${encodeURIComponent(novelSlug)}`);
         return detail.characters.map((char) => ({
+            id: char.id,
             name: char.name,
             aliases: char.aliases || [],
             description: char.description || "",
@@ -112,6 +125,34 @@ export class ApiService {
             })
         });
         return result.id;
+    }
+
+    async updateCharacter(novelSlug: string, characterId: number, character: Character): Promise<Character> {
+        const result = await this.request<CharacterApiResponse>(`/novels/${encodeURIComponent(novelSlug)}/characters/${characterId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+                name: character.name.trim(),
+                aliases: character.aliases.map(alias => alias.trim()).filter(Boolean),
+                description: character.description.trim(),
+                image_url: character.imageUrl?.trim() || "",
+                highlight_color: character.highlightColor?.trim() || ""
+            })
+        });
+
+        return {
+            id: result.id,
+            name: result.name,
+            aliases: result.aliases || [],
+            description: result.description || "",
+            imageUrl: result.image_url || "",
+            highlightColor: result.highlight_color || ""
+        };
+    }
+
+    async deleteCharacter(novelSlug: string, characterId: number): Promise<void> {
+        await this.request<void>(`/novels/${encodeURIComponent(novelSlug)}/characters/${characterId}`, {
+            method: "DELETE"
+        });
     }
 
 }
