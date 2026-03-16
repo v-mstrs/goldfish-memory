@@ -23,7 +23,6 @@ This branch expects a backend API instead of local Dexie storage.
 ## Privacy
 
 - Privacy policy: `PRIVACY.md`
-- AMO submission notes: `AMO-SUBMISSION-NOTES.md`
 
 Goldfish Memory stores local UI settings in extension storage and can send character data to a user-configured backend API. Selected page text is only sent when the user explicitly uses the add-character flow from selected text.
 
