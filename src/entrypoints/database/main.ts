@@ -120,7 +120,31 @@ class GoldfishDatabasePage {
             }
         });
 
+        browser.storage.onChanged.addListener((changes, area) => {
+            if (area !== "local" || !changes.activeNovelSlug) return;
+
+            const nextSlug = typeof changes.activeNovelSlug.newValue === "string"
+                ? changes.activeNovelSlug.newValue
+                : "";
+
+            if (!nextSlug || nextSlug === this.currentNovelSlug) return;
+            void this.handleExternalNovelSelectionChange(nextSlug);
+        });
+
         this.setHighlightColor(this.ui.charColorInput.value);
+    }
+
+    private async handleExternalNovelSelectionChange(slug: string) {
+        const matchingNovel = this.novels.find((novel) => novel.slug === slug);
+        if (!matchingNovel) {
+            await this.loadNovels(slug);
+            return;
+        }
+
+        this.currentNovelSlug = slug;
+        this.ui.novelSelect.value = slug;
+        this.renderNovelSummary();
+        await this.loadCharactersForCurrentNovel();
     }
 
     private async loadDisplaySettings() {

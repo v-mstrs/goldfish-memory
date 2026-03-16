@@ -36,9 +36,56 @@
                     </div>
                 </div>
 
-                <div class="stack">
-                    <div class="panel-title">Table Controls</div>
+                <section class="stack highlight-settings-panel">
+                    <div class="panel-title">Highlight Settings</div>
 
+                    <div class="highlight-settings-grid">
+                        <label class="settings-field">
+                            <span>Font Size</span>
+                            <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">
+                            <small class="settings-help">Sets the size of highlighted names while reading.</small>
+                        </label>
+
+                        <label class="settings-field">
+                            <span>Font Weight</span>
+                            <select id="displayFontWeight">
+                                <option value="700">Bold</option>
+                                <option value="600">Semibold</option>
+                                <option value="400">Normal</option>
+                            </select>
+                            <small class="settings-help">Choose how heavy the highlighted text should appear.</small>
+                        </label>
+
+                        <label class="settings-field">
+                            <span>Underline</span>
+                            <select id="displayUnderlineStyle">
+                                <option value="none">No underline</option>
+                                <option value="solid">Solid</option>
+                                <option value="dashed">Dashed</option>
+                                <option value="dotted">Dotted</option>
+                                <option value="wavy">Wavy</option>
+                            </select>
+                            <small class="settings-help">Controls the underline style applied to highlighted names.</small>
+                        </label>
+
+                        <label class="settings-field">
+                            <span>Max Highlights Per Character</span>
+                            <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
+                            <small class="settings-help">Matches `DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR` and caps repeat highlights per page.</small>
+                        </label>
+                    </div>
+
+                    <div class="settings-preview">
+                        <div class="settings-preview-label">Preview</div>
+                        <div class="settings-preview-copy">
+                            The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
+                        </div>
+                    </div>
+
+                    <div id="displaySettingsStatus" class="status-pill hidden"></div>
+                </section>
+
+                <div class="stack">
                     <div class="row">
                         <div class="grow">
                             <div class="label">Novel</div>
@@ -57,7 +104,6 @@
                     </div>
 
                     <div class="row" style="justify-content: space-between;">
-                        <div class="toolbar-hint">Double-click a cell to edit, then use the row Save button.</div>
                         <div id="tableStatus" class="status-pill hidden"></div>
                     </div>
 
@@ -83,53 +129,6 @@
             </main>
 
             <aside class="sidebar">
-                <section class="sidebar-panel stack">
-                    <div class="panel-title">Highlight Settings</div>
-
-                    <label class="settings-field">
-                        <span>Font Size</span>
-                        <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">
-                        <small class="settings-help">Sets the size of highlighted names while reading.</small>
-                    </label>
-
-                    <label class="settings-field">
-                        <span>Font Weight</span>
-                        <select id="displayFontWeight">
-                            <option value="700">Bold</option>
-                            <option value="600">Semibold</option>
-                            <option value="400">Normal</option>
-                        </select>
-                        <small class="settings-help">Choose how heavy the highlighted text should appear.</small>
-                    </label>
-
-                    <label class="settings-field">
-                        <span>Underline</span>
-                        <select id="displayUnderlineStyle">
-                            <option value="none">No underline</option>
-                            <option value="solid">Solid</option>
-                            <option value="dashed">Dashed</option>
-                            <option value="dotted">Dotted</option>
-                            <option value="wavy">Wavy</option>
-                        </select>
-                        <small class="settings-help">Controls the underline style applied to highlighted names.</small>
-                    </label>
-
-                    <label class="settings-field">
-                        <span>Max Highlights Per Character</span>
-                        <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
-                        <small class="settings-help">Matches `DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR` and caps repeat highlights per page.</small>
-                    </label>
-
-                    <div class="settings-preview">
-                        <div class="settings-preview-label">Preview</div>
-                        <div class="settings-preview-copy">
-                            The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
-                        </div>
-                    </div>
-
-                    <div id="displaySettingsStatus" class="status-pill hidden"></div>
-                </section>
-
                 <section class="sidebar-panel stack">
                     <div class="panel-title">Add Novel</div>
 
