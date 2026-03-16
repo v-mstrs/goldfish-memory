@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css">
+    <title>Goldfish Memory Database</title>
+</head>
+
+<body>
+    <div class="database-page">
+        <div class="page-shell">
+            <main class="main">
+                <div class="page-title">
+                    <div class="title-block">
+                        <img src="goldfish-white.png" alt="Goldfish Memory logo" class="page-logo">
+                        <div>
+                            <h1>Goldfish Memory Database</h1>
+                            <p class="page-subtitle">Edit saved novels and characters without leaving the extension.</p>
+                        </div>
+                    </div>
+
+                    <div class="page-actions">
+                        <button id="refreshBtn" class="ghost-button" type="button">Refresh</button>
+                        <button id="rescanBtn" class="primary-button" type="button">Rescan Active Tab</button>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span>Selected Novel</span>
+                        <strong id="selectedNovelLabel">No novel selected</strong>
+                        <span id="apiBaseUrlLabel">Backend: loading...</span>
+                    </div>
+
+                    <div class="stat-card">
+                        <span>Characters</span>
+                        <strong id="characterCountLabel">0</strong>
+                        <span>Visible rows in the current view</span>
+                    </div>
+                </div>
+
+                <div class="stack">
+                    <div class="panel-title">Table Controls</div>
+
+                    <div class="row">
+                        <div class="grow">
+                            <div class="label">Novel</div>
+                            <select id="novelSelect"></select>
+                        </div>
+
+                        <div class="grow">
+                            <div class="label">Search</div>
+                            <input id="searchInput" type="search" placeholder="Search names, aliases, descriptions, image URLs, or colors">
+                        </div>
+
+                        <div>
+                            <div class="label">&nbsp;</div>
+                            <button id="clearFilterBtn" class="ghost-button" type="button">Clear Filter</button>
+                        </div>
+                    </div>
+
+                    <div class="row" style="justify-content: space-between;">
+                        <div class="toolbar-hint">Double-click a cell to edit, then use the row Save button.</div>
+                        <div id="tableStatus" class="status-pill hidden"></div>
+                    </div>
+
+                    <div class="row row-wrap">
+                        <label class="toggle-option">
+                            <input id="toggleAliasesColumn" type="checkbox">
+                            <span>Show Aliases</span>
+                        </label>
+
+                        <label class="toggle-option">
+                            <input id="toggleImageColumn" type="checkbox">
+                            <span>Show Image</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="stack">
+                    <div class="panel-title">Characters</div>
+                    <div class="table-shell">
+                        <div id="characterTable"></div>
+                    </div>
+                </div>
+            </main>
+
+            <aside class="sidebar">
+                <section class="sidebar-panel stack">
+                    <div class="panel-title">Add Novel</div>
+
+                    <div>
+                        <div class="label">Title</div>
+                        <input id="newNovelInput" type="text" placeholder="The Legendary Moonlight Sculptor">
+                    </div>
+
+                    <button id="addNovelBtn" class="primary-button" type="button">Create Novel</button>
+                </section>
+
+                <section class="sidebar-panel stack">
+                    <div class="panel-title">Add Character</div>
+
+                    <div>
+                        <div class="label">Name</div>
+                        <input id="charNameInput" type="text" placeholder="Artoria">
+                    </div>
+
+                    <div>
+                        <div class="label">Aliases</div>
+                        <input id="charAliasesInput" type="text" placeholder="King Arthur, Saber">
+                    </div>
+
+                    <div>
+                        <div class="label">Description</div>
+                        <textarea id="charDescriptionInput" rows="5" placeholder="Short reminder for your future self..."></textarea>
+                    </div>
+
+                    <div>
+                        <div class="label">Image URL</div>
+                        <input id="charImageInput" type="url" placeholder="https://...">
+                    </div>
+
+                    <div class="color-picker-group">
+                        <div class="color-picker-label">Highlight Color</div>
+                        <div id="charHighlightPalette" class="color-palette">
+                            <button type="button" class="color-swatch selected" data-color="#c5daff" style="--swatch-color: #c5daff;" title="Default blue"></button>
+                            <button type="button" class="color-swatch" data-color="#ff8a80" style="--swatch-color: #ff8a80;" title="Soft red"></button>
+                            <button type="button" class="color-swatch" data-color="#ffd180" style="--swatch-color: #ffd180;" title="Warm gold"></button>
+                            <button type="button" class="color-swatch" data-color="#a5d6a7" style="--swatch-color: #a5d6a7;" title="Green"></button>
+                            <button type="button" class="color-swatch" data-color="#80deea" style="--swatch-color: #80deea;" title="Cyan"></button>
+                            <button type="button" class="color-swatch" data-color="#b39ddb" style="--swatch-color: #b39ddb;" title="Lavender"></button>
+                            <button type="button" class="color-swatch" data-color="#f48fb1" style="--swatch-color: #f48fb1;" title="Pink"></button>
+                            <button type="button" class="color-swatch" data-color="#e0e0e0" style="--swatch-color: #e0e0e0;" title="Light gray"></button>
+                        </div>
+                        <input id="charColorInput" type="text" value="#c5daff" placeholder="#c5daff">
+                    </div>
+
+                    <div class="settings-preview">
+                        <div class="settings-preview-label">Preview</div>
+                        <div class="settings-preview-copy">
+                            The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
+                        </div>
+                    </div>
+
+                    <button id="addCharacterBtn" class="primary-button" type="button">Add Character</button>
+                </section>
+            </aside>
+        </div>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+</body>
+
+</html>
