@@ -45,7 +45,7 @@ npm install
 npm run dev
 
 # Firefox (MV3)
-npm run dev:firefox
+npm run dev:ff
 ```
 
 ### Build
@@ -54,7 +54,7 @@ npm run dev:firefox
 npm run build
 
 # Firefox (MV3)
-npm run build:firefox
+npm run build:ff
 ```
 
 ## Loading the Extension

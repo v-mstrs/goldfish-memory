@@ -26,7 +26,6 @@
                     <div class="stat-card">
                         <span>Selected Novel</span>
                         <strong id="selectedNovelLabel">No novel selected</strong>
-                        <span id="apiBaseUrlLabel">Backend: loading...</span>
                     </div>
 
                     <div class="stat-card">
@@ -37,9 +36,15 @@
                 </div>
 
                 <section class="stack highlight-settings-panel">
-                    <div class="panel-title">Highlight Settings</div>
+                    <div class="panel-title">Settings</div>
 
                     <div class="highlight-settings-grid">
+                        <label class="settings-field">
+                            <span>Backend URL</span>
+                            <input id="apiBaseUrlSetting" type="text" placeholder="http://127.0.0.1:8000">
+                            <small class="settings-help">Change the backend host or port here. Example: `http://192.168.1.20:8000`.</small>
+                        </label>
+
                         <label class="settings-field">
                             <span>Font Size</span>
                             <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">

@@ -34,7 +34,8 @@ const normalizeHostname = (hostname: string) => hostname.trim().toLowerCase();
 
 export const API_HOST_PERMISSIONS = [
     'http://127.0.0.1/*',
-    'http://localhost/*'
+    'http://localhost/*',
+    'http://*.local/*'
 ] as const;
 
 export const SITE_HOST_PERMISSIONS = SITES.map(

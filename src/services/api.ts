@@ -61,7 +61,8 @@ export class ApiService {
 
     private async request<T>(path: string, init?: RequestInit): Promise<T> {
         const baseUrl = await this.getBaseUrl();
-        const response = await fetch(`${baseUrl}${path}`, {
+        const fullUrl = `${baseUrl}${path}`;
+        const response = await fetch(fullUrl, {
             ...init,
             headers: {
                 "Content-Type": "application/json",

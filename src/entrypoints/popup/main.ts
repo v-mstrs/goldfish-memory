@@ -84,12 +84,16 @@ class GoldfishPopup {
     }
 
     private async init() {
-        await this.verifyBackgroundConnection();
-        await this.refreshNovelDropdown();
-        await this.loadBackendSettings();
-        await this.loadDisplaySettings();
-        await this.syncDraft("load");
         this.setupListeners();
+        try {
+            await this.verifyBackgroundConnection();
+            await this.refreshNovelDropdown();
+            await this.loadBackendSettings();
+            await this.loadDisplaySettings();
+            await this.syncDraft("load");
+        } catch (error) {
+            console.error("[Goldfish] Initialization error:", error);
+        }
     }
 
     private async verifyBackgroundConnection() {
@@ -98,7 +102,6 @@ class GoldfishPopup {
             console.log("[Goldfish] Background ping:", response);
         } catch (error) {
             console.error("[Goldfish] Background unreachable:", error);
-            this.showStatus("Background script is not reachable", "error");
         }
     }
 
@@ -387,25 +390,30 @@ class GoldfishPopup {
     }
 
     private async refreshNovelDropdown(selectSlug?: string) {
-        const novels = await apiService.getAllNovels();
-        const stored = await browser.storage.local.get("activeNovelSlug");
-        const preferredSlug = selectSlug
-            || this.ui.novel.select.value
-            || (stored.activeNovelSlug as string | undefined)
-            || "";
+        try {
+            const novels = await apiService.getAllNovels();
+            const stored = await browser.storage.local.get("activeNovelSlug");
+            const preferredSlug = selectSlug
+                || this.ui.novel.select.value
+                || (stored.activeNovelSlug as string | undefined)
+                || "";
 
-        this.ui.novel.select.length = 1;
+            this.ui.novel.select.length = 1;
 
-        novels.forEach((novel) => {
-            this.ui.novel.select.appendChild(new Option(novel.title, novel.slug));
-        });
+            novels.forEach((novel) => {
+                this.ui.novel.select.appendChild(new Option(novel.title, novel.slug));
+            });
 
-        const availableSlug = novels.some((novel) => novel.slug === preferredSlug)
-            ? preferredSlug
-            : novels[0]?.slug || "";
+            const availableSlug = novels.some((novel) => novel.slug === preferredSlug)
+                ? preferredSlug
+                : novels[0]?.slug || "";
 
-        if (availableSlug) {
-            this.ui.novel.select.value = availableSlug;
+            if (availableSlug) {
+                this.ui.novel.select.value = availableSlug;
+            }
+        } catch (error) {
+            console.error("[Goldfish] Failed to refresh novel dropdown:", error);
+            this.showStatus("Could not load novels from backend", "error");
         }
     }
 

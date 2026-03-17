@@ -29,6 +29,9 @@ export default defineConfig({
             'contextMenus'
         ],
         host_permissions: [...API_HOST_PERMISSIONS, ...SITE_HOST_PERMISSIONS],
+        content_security_policy: {
+            extension_pages: "script-src 'self'; object-src 'self';"
+        },
         browser_specific_settings: firefoxBrowserSettings,
         action: {
             default_title: 'Goldfish Memory',

@@ -49,8 +49,8 @@ class GoldfishDatabasePage {
 
     private ui = {
         selectedNovelLabel: document.getElementById("selectedNovelLabel") as HTMLSpanElement,
-        apiBaseUrlLabel: document.getElementById("apiBaseUrlLabel") as HTMLSpanElement,
         characterCountLabel: document.getElementById("characterCountLabel") as HTMLSpanElement,
+        apiBaseUrlSetting: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
         novelSelect: document.getElementById("novelSelect") as HTMLSelectElement,
         searchInput: document.getElementById("searchInput") as HTMLInputElement,
         clearFilterBtn: document.getElementById("clearFilterBtn") as HTMLButtonElement,
@@ -81,7 +81,7 @@ class GoldfishDatabasePage {
 
     private async init() {
         this.bindEvents();
-        await this.loadApiBaseUrlLabel();
+        await this.loadBackendSettings();
         await this.loadNovels();
         await this.loadDisplaySettings();
         this.setHighlightColor(DEFAULT_HIGHLIGHT_COLOR);
@@ -97,6 +97,7 @@ class GoldfishDatabasePage {
         this.ui.addCharacterBtn.addEventListener("click", () => void this.handleAddCharacter());
         this.ui.charHighlightPalette.addEventListener("click", (event) => this.handlePaletteClick(event));
         this.ui.charColorInput.addEventListener("input", () => this.handleHighlightColorInput());
+        this.ui.apiBaseUrlSetting.addEventListener("change", () => void this.saveBackendSettings());
         [
             this.ui.displayFontSize,
             this.ui.displayFontWeight,
@@ -248,12 +249,28 @@ class GoldfishDatabasePage {
         });
     }
 
-    private async loadApiBaseUrlLabel() {
+    private async loadBackendSettings() {
         const { apiBaseUrl } = await browser.storage.local.get("apiBaseUrl");
-        const baseUrl = typeof apiBaseUrl === "string" && apiBaseUrl.trim()
+        this.ui.apiBaseUrlSetting.value = typeof apiBaseUrl === "string" && apiBaseUrl.trim()
             ? apiBaseUrl.trim()
             : DEFAULT_API_BASE_URL;
-        this.ui.apiBaseUrlLabel.textContent = `Backend: ${baseUrl}`;
+    }
+
+    private async saveBackendSettings() {
+        const candidate = this.ui.apiBaseUrlSetting.value.trim();
+        const normalized = candidate.replace(/\/+$/, "");
+
+        if (!/^https?:\/\/.+/i.test(normalized)) {
+            this.showDisplaySettingsStatus("Use a full URL like http://127.0.0.1:8000", true);
+            this.ui.apiBaseUrlSetting.value = normalized || DEFAULT_API_BASE_URL;
+            return;
+        }
+
+        await browser.storage.local.set({ apiBaseUrl: normalized });
+        this.ui.apiBaseUrlSetting.value = normalized;
+        this.showDisplaySettingsStatus("Backend URL saved");
+        await this.loadNovels(); // Reload novels after backend change
+        await this.handleRescan();
     }
 
     private async loadNovels(preferredSlug?: string) {
