@@ -1,4 +1,4 @@
-import { browser } from 'wxt/browser';
+
 
 const MODAL_STYLE_ID = 'goldfish-modal-styles';
 
@@ -396,4 +396,245 @@ export function showAddCharacterModal(name: string, novelSlug: string, selection
             });
         }
     });
+}
+
+/**
+ * Displays AI scan extractions in a structured list.
+ */
+export function showScanResultsModal(extractions: any[], isPreview: boolean, novelSlug: string) {
+    injectModalStyles();
+
+    const existing = document.getElementById('goldfish-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'goldfish-modal-overlay';
+    overlay.className = 'goldfish-modal-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'goldfish-modal';
+    modal.style.width = '480px'; // Wider for list
+    modal.style.maxHeight = '85vh';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'goldfish-modal-header';
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'goldfish-modal-eyebrow';
+    eyebrow.textContent = isPreview ? 'AI Scan Preview' : 'AI Scan Results';
+
+    const title = document.createElement('div');
+    title.className = 'goldfish-modal-title';
+    title.textContent = isPreview ? 'Found Characters' : 'Confirm Character Updates';
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'goldfish-modal-subtitle';
+    subtitle.textContent = isPreview 
+        ? 'These are the characters the AI identified in the current text.' 
+        : 'The following updates will be applied to your novel database.';
+
+    header.appendChild(eyebrow);
+    header.appendChild(title);
+    header.appendChild(subtitle);
+    modal.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'goldfish-modal-body';
+    body.style.overflowY = 'auto';
+    body.style.paddingTop = '8px';
+
+    if (extractions.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.padding = '20px';
+        empty.style.textAlign = 'center';
+        empty.style.color = '#79859a';
+        empty.textContent = 'No characters found.';
+        body.appendChild(empty);
+    } else {
+        extractions.forEach((ext, idx) => {
+            const item = document.createElement('div');
+            item.style.padding = '12px 0';
+            if (idx > 0) item.style.borderTop = '1px solid rgba(255, 255, 255, 0.05)';
+
+            const nameRow = document.createElement('div');
+            nameRow.style.display = 'flex';
+            nameRow.style.alignItems = 'baseline';
+            nameRow.style.gap = '8px';
+            nameRow.style.marginBottom = '4px';
+
+            const name = document.createElement('strong');
+            name.style.color = '#fff';
+            name.style.fontSize = '14px';
+            name.textContent = ext.name;
+
+            const type = document.createElement('span');
+            type.style.fontSize = '10px';
+            type.style.textTransform = 'uppercase';
+            type.style.padding = '2px 6px';
+            type.style.borderRadius = '4px';
+            type.style.fontWeight = '700';
+            
+            if (ext.match_id) {
+                type.textContent = 'Update';
+                type.style.background = 'rgba(79, 121, 199, 0.2)';
+                type.style.color = '#5b88d6';
+            } else {
+                type.textContent = 'New';
+                type.style.background = 'rgba(82, 196, 26, 0.15)';
+                type.style.color = '#52c41a';
+            }
+
+            nameRow.appendChild(name);
+            nameRow.appendChild(type);
+
+            const desc = document.createElement('div');
+            desc.style.fontSize = '12px';
+            desc.style.color = '#aab4c3';
+            desc.style.lineHeight = '1.4';
+            desc.textContent = ext.description;
+
+            item.appendChild(nameRow);
+            item.appendChild(desc);
+
+            if (ext.aliases && ext.aliases.length > 0) {
+                const aliases = document.createElement('div');
+                aliases.style.fontSize = '11px';
+                aliases.style.color = '#6f8795';
+                aliases.style.marginTop = '4px';
+                aliases.textContent = `Aliases: ${ext.aliases.join(', ')}`;
+                item.appendChild(aliases);
+            }
+
+            body.appendChild(item);
+        });
+    }
+
+    modal.appendChild(body);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'goldfish-modal-footer';
+
+    const close = () => {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 200);
+    };
+
+    overlay.onclick = (e) => {
+        if (e.target === overlay) close();
+    };
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'goldfish-btn goldfish-btn-secondary';
+    cancelBtn.textContent = isPreview ? 'Close' : 'Cancel';
+    cancelBtn.onclick = close;
+    footer.appendChild(cancelBtn);
+
+    if (!isPreview && extractions.length > 0) {
+        const commitBtn = document.createElement('button');
+        commitBtn.className = 'goldfish-btn goldfish-btn-primary';
+        commitBtn.textContent = 'Commit to DB';
+        commitBtn.onclick = async () => {
+            commitBtn.disabled = true;
+            commitBtn.textContent = 'Syncing...';
+            try {
+                await browser.runtime.sendMessage({
+                    type: 'COMMIT_AI_SCAN',
+                    novelSlug,
+                    extractions
+                });
+                close();
+            } catch (e) {
+                console.error(e);
+                commitBtn.textContent = 'Failed';
+                setTimeout(() => {
+                    commitBtn.textContent = 'Commit to DB';
+                    commitBtn.disabled = false;
+                }, 2000);
+            }
+        };
+        footer.appendChild(commitBtn);
+    }
+
+    modal.appendChild(footer);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%)'; 
+    });
+}
+
+/**
+ * Shows a simple loading indicator in the corner.
+ */
+export function showLoadingModal(message: string) {
+    injectModalStyles();
+    
+    const existing = document.getElementById('goldfish-loading-toast');
+    if (existing) {
+        const text = existing.querySelector('.goldfish-loading-text');
+        if (text) text.textContent = message;
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.id = 'goldfish-loading-toast';
+    toast.style.position = 'fixed';
+    toast.style.bottom = '24px';
+    toast.style.right = '24px';
+    toast.style.background = '#161a21';
+    toast.style.color = '#fff';
+    toast.style.padding = '12px 16px';
+    toast.style.borderRadius = '8px';
+    toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4)';
+    toast.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+    toast.style.zIndex = '2147483646';
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '12px';
+    toast.style.fontFamily = 'sans-serif';
+    toast.style.fontSize = '13px';
+    toast.style.pointerEvents = 'none';
+    toast.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    toast.style.transform = 'translateY(20px)';
+    toast.style.opacity = '0';
+
+    const spinner = document.createElement('div');
+    spinner.style.width = '16px';
+    spinner.style.height = '16px';
+    spinner.style.border = '2px solid rgba(255, 255, 255, 0.1)';
+    spinner.style.borderTopColor = '#634dbf';
+    spinner.style.borderRadius = '50%';
+    spinner.style.animation = 'goldfish-spin 1s linear infinite';
+
+    const text = document.createElement('div');
+    text.className = 'goldfish-loading-text';
+    text.textContent = message;
+
+    toast.appendChild(spinner);
+    toast.appendChild(text);
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+    });
+}
+
+/**
+ * Removes the loading indicator.
+ */
+export function hideLoadingModal() {
+    const loader = document.getElementById('goldfish-loading-toast');
+    if (loader) {
+        loader.style.transform = 'translateY(20px)';
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 300);
+    }
 }

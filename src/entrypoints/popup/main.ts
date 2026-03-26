@@ -1,5 +1,5 @@
 import { apiService } from "../../services/api";
-import { browser } from "wxt/browser";
+
 
 interface HighlightDisplaySettings {
     fontSizePx: number;
@@ -45,6 +45,7 @@ class GoldfishPopup {
         },
         settings: {
             apiBaseUrl: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
+            geminiApiKey: document.getElementById("geminiApiKeySetting") as HTMLInputElement,
             fontSize: document.getElementById("displayFontSize") as HTMLInputElement,
             textStyle: document.getElementById("displayTextStyle") as HTMLSelectElement,
             underline: document.getElementById("displayUnderlineStyle") as HTMLSelectElement,
@@ -227,8 +228,9 @@ class GoldfishPopup {
     }
 
     private normalizeHexColor(value: string): string | null {
-        const trimmed = value.trim();
-        if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase();
+        const trimmed = value.trim().toLowerCase();
+        if (trimmed === "none") return "none";
+        if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed;
         return null;
     }
 
@@ -253,25 +255,31 @@ class GoldfishPopup {
     }
 
     private async loadBackendSettings() {
-        const { apiBaseUrl } = await browser.storage.local.get("apiBaseUrl");
+        const { apiBaseUrl, geminiApiKey } = await browser.storage.local.get(["apiBaseUrl", "geminiApiKey"]);
         this.ui.settings.apiBaseUrl.value = typeof apiBaseUrl === "string" && apiBaseUrl.trim()
             ? apiBaseUrl.trim()
             : DEFAULT_API_BASE_URL;
+        this.ui.settings.geminiApiKey.value = typeof geminiApiKey === "string" ? geminiApiKey : "";
     }
 
     private async saveBackendSettings() {
         const candidate = this.ui.settings.apiBaseUrl.value.trim();
         const normalized = candidate.replace(/\/+$/, "");
+        const geminiKey = this.ui.settings.geminiApiKey.value.trim();
 
-        if (!/^https?:\/\/.+/i.test(normalized)) {
+        if (candidate && !/^https?:\/\/.+/i.test(normalized)) {
             this.showSettingsSaved("Use a full URL like http://127.0.0.1:8000", true);
             this.ui.settings.apiBaseUrl.value = normalized || DEFAULT_API_BASE_URL;
             return;
         }
 
-        await browser.storage.local.set({ apiBaseUrl: normalized });
-        this.ui.settings.apiBaseUrl.value = normalized;
-        this.showSettingsSaved("Backend URL saved");
+        await browser.storage.local.set({ 
+            apiBaseUrl: normalized || DEFAULT_API_BASE_URL,
+            geminiApiKey: geminiKey
+        });
+        
+        this.ui.settings.apiBaseUrl.value = normalized || DEFAULT_API_BASE_URL;
+        this.showSettingsSaved("Settings saved");
         await this.handleRescan();
     }
 
@@ -342,7 +350,10 @@ class GoldfishPopup {
 
     private renderHighlightPreview(settings: HighlightDisplaySettings) {
         const preview = this.ui.settings.previewWord;
-        const previewColor = this.normalizeHexColor(this.ui.char.color.value) || DEFAULT_HIGHLIGHT_COLOR;
+        const rawColor = this.normalizeHexColor(this.ui.char.color.value) || DEFAULT_HIGHLIGHT_COLOR;
+        const isNone = rawColor === "none";
+        const previewColor = isNone ? "inherit" : rawColor;
+
         this.ui.settings.fontSize.value = String(settings.fontSizePx);
         this.ui.settings.highlightLimit.value = String(settings.highlightLimitPerChar);
 

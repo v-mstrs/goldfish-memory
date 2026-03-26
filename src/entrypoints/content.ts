@@ -1,8 +1,7 @@
-import { defineContentScript } from 'wxt/sandbox';
-import { browser } from 'wxt/browser';
+
 import { getActiveConfig, MATCH_PATTERNS } from "../sites";
 import { type Character } from "../services/api";
-import { showAddCharacterModal } from "../modal";
+import { showAddCharacterModal, showScanResultsModal, showLoadingModal, hideLoadingModal } from "../modal";
 
 interface HighlightDisplaySettings {
     fontSizePx: number;
@@ -65,10 +64,58 @@ export default defineContentScript({
                 browser.runtime.onMessage.addListener((message: any) => {
                     if (message.type === "RESCAN_PAGE") {
                         this.init();
-                        return;
+                        return Promise.resolve({ success: true });
                     }
                     if (message.type === "CONTEXT_MENU_ADD_CHARACTER") {
                         this.handleAddCharacter(message.text);
+                        return Promise.resolve({ success: true });
+                    }
+                    if (message.type === "GET_CHAPTER_TEXT") {
+                        const config = getActiveConfig();
+                        console.log("[Goldfish] Extracting text using selector:", config.contentSelector);
+                        
+                        let element = document.querySelector(config.contentSelector);
+                        let text = (element as HTMLElement)?.innerText?.trim() || "";
+
+                        // Fallback 1: Try article tag
+                        if (!text) {
+                            element = document.querySelector("article");
+                            text = (element as HTMLElement)?.innerText?.trim() || "";
+                        }
+
+                        // Fallback 2: Take everything if we are on a known novel site but selector failed
+                        if (!text && config.hostname !== "generic") {
+                            text = document.body.innerText.trim();
+                        }
+
+                        console.log(`[Goldfish] Extracted ${text.length} characters of text.`);
+                        return Promise.resolve({ text });
+                    }
+                    if (message.type === "SHOW_CONFIRM") {
+                        return Promise.resolve({ confirmed: confirm(message.text) });
+                    }
+                    if (message.type === "SHOW_ALERT") {
+                        alert(message.text);
+                        return Promise.resolve({ success: true });
+                    }
+                    if (message.type === "SHOW_LOADING") {
+                        showLoadingModal(message.text);
+                        return Promise.resolve({ success: true });
+                    }
+                    if (message.type === "HIDE_LOADING") {
+                        hideLoadingModal();
+                        return Promise.resolve({ success: true });
+                    }
+                    if (message.type === "SHOW_SCAN_RESULTS") {
+                        hideLoadingModal(); // Ensure loading is hidden before results
+                        showScanResultsModal(message.extractions, message.isPreview, message.novelSlug);
+                        return Promise.resolve({ success: true });
+                    }
+                    if (message.type === "LOG_DATA") {
+                        console.log(`[Goldfish AI] ${message.label || "Data"}:`);
+                        if (message.useTable) console.table(message.data);
+                        else console.log(message.data);
+                        return Promise.resolve({ success: true });
                     }
                 });
 
@@ -292,14 +339,24 @@ export default defineContentScript({
                 span.style.fontWeight = this.displaySettings.fontWeight;
                 span.style.fontStyle = this.displaySettings.fontStyle;
 
-                const color = char.highlightColor || "#c5daff";
+                const rawColor = char.highlightColor || "#c5daff";
+                const isNone = rawColor === "none";
+                const color = isNone ? null : rawColor;
                 const showUnderline = this.displaySettings.underlineStyle !== "none";
 
-                span.style.color = color;
-                span.style.textDecoration = showUnderline
-                    ? `${color} ${this.displaySettings.underlineStyle} underline`
-                    : "none";
-                span.style.textDecorationColor = color;
+                if (color) {
+                    span.style.color = color;
+                    span.style.textDecoration = showUnderline
+                        ? `${color} ${this.displaySettings.underlineStyle} underline`
+                        : "none";
+                    span.style.textDecorationColor = color;
+                } else {
+                    // No color change, just apply decoration if needed
+                    if (showUnderline) {
+                        span.style.textDecoration = `${this.displaySettings.underlineStyle} underline`;
+                    }
+                }
+
                 span.style.backgroundColor = "transparent";
                 span.style.boxShadow = "none";
 

@@ -30,6 +30,11 @@ export const SITES = [
 
 ] as const;
 
+export const GENERIC_SITE = {
+    hostname: "generic",
+    contentSelector: "article, .chapter-content, #chapter-content, .reader-content, #reader-content, .entry-content, main"
+};
+
 const normalizeHostname = (hostname: string) => hostname.trim().toLowerCase();
 
 export const API_HOST_PERMISSIONS = [
@@ -42,7 +47,10 @@ export const SITE_HOST_PERMISSIONS = SITES.map(
     (site) => `*://*.${normalizeHostname(site.hostname)}/*`
 );
 
-export const MATCH_PATTERNS = SITE_HOST_PERMISSIONS;
+// Add all URLs to match patterns so it works everywhere if permissions allow
+export const MATCH_PATTERNS = ["<all_urls>"];
 
-export const getActiveConfig = () =>
-    SITES.find((s) => window.location.hostname.includes(normalizeHostname(s.hostname)));
+export const getActiveConfig = () => {
+    const matched = SITES.find((s) => window.location.hostname.includes(normalizeHostname(s.hostname)));
+    return matched || GENERIC_SITE;
+};

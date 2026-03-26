@@ -1,7 +1,8 @@
-import { browser } from "wxt/browser";
+
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator_midnight.min.css";
 import { apiService, type Character, type Novel } from "../../services/api";
+import { aiService, type GeminiCharacterExtraction } from "../../services/ai";
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 const DEFAULT_HIGHLIGHT_COLOR = "#c5daff";
@@ -36,6 +37,9 @@ interface CharacterRow {
     description: string;
     imageUrl: string;
     highlightColor: string;
+    family: string;
+    alliances: string;
+    abilities: string;
     isDirty?: boolean;
 }
 
@@ -51,11 +55,16 @@ class GoldfishDatabasePage {
         selectedNovelLabel: document.getElementById("selectedNovelLabel") as HTMLSpanElement,
         characterCountLabel: document.getElementById("characterCountLabel") as HTMLSpanElement,
         apiBaseUrlSetting: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
+        geminiApiKeySetting: document.getElementById("geminiApiKeySetting") as HTMLInputElement,
+        testAiConnBtn: document.getElementById("testAiConnBtn") as HTMLButtonElement,
         novelSelect: document.getElementById("novelSelect") as HTMLSelectElement,
         searchInput: document.getElementById("searchInput") as HTMLInputElement,
         clearFilterBtn: document.getElementById("clearFilterBtn") as HTMLButtonElement,
         toggleAliasesColumn: document.getElementById("toggleAliasesColumn") as HTMLInputElement,
         toggleImageColumn: document.getElementById("toggleImageColumn") as HTMLInputElement,
+        toggleFamilyColumn: document.getElementById("toggleFamilyColumn") as HTMLInputElement,
+        toggleAlliancesColumn: document.getElementById("toggleAlliancesColumn") as HTMLInputElement,
+        toggleAbilitiesColumn: document.getElementById("toggleAbilitiesColumn") as HTMLInputElement,
         tableStatus: document.getElementById("tableStatus") as HTMLDivElement,
         newNovelInput: document.getElementById("newNovelInput") as HTMLInputElement,
         addNovelBtn: document.getElementById("addNovelBtn") as HTMLButtonElement,
@@ -63,6 +72,9 @@ class GoldfishDatabasePage {
         charAliasesInput: document.getElementById("charAliasesInput") as HTMLInputElement,
         charDescriptionInput: document.getElementById("charDescriptionInput") as HTMLTextAreaElement,
         charImageInput: document.getElementById("charImageInput") as HTMLInputElement,
+        charFamilyInput: document.getElementById("charFamilyInput") as HTMLInputElement,
+        charAlliancesInput: document.getElementById("charAlliancesInput") as HTMLInputElement,
+        charAbilitiesInput: document.getElementById("charAbilitiesInput") as HTMLInputElement,
         charColorInput: document.getElementById("charColorInput") as HTMLInputElement,
         charHighlightPalette: document.getElementById("charHighlightPalette") as HTMLDivElement,
         displayFontSize: document.getElementById("displayFontSize") as HTMLInputElement,
@@ -93,11 +105,16 @@ class GoldfishDatabasePage {
         this.ui.clearFilterBtn.addEventListener("click", () => this.clearSearchFilter());
         this.ui.toggleAliasesColumn.addEventListener("change", () => this.syncColumnVisibility());
         this.ui.toggleImageColumn.addEventListener("change", () => this.syncColumnVisibility());
+        this.ui.toggleFamilyColumn.addEventListener("change", () => this.syncColumnVisibility());
+        this.ui.toggleAlliancesColumn.addEventListener("change", () => this.syncColumnVisibility());
+        this.ui.toggleAbilitiesColumn.addEventListener("change", () => this.syncColumnVisibility());
         this.ui.addNovelBtn.addEventListener("click", () => void this.handleAddNovel());
         this.ui.addCharacterBtn.addEventListener("click", () => void this.handleAddCharacter());
+        this.ui.testAiConnBtn.addEventListener("click", () => void this.handleTestAiConnection());
         this.ui.charHighlightPalette.addEventListener("click", (event) => this.handlePaletteClick(event));
         this.ui.charColorInput.addEventListener("input", () => this.handleHighlightColorInput());
         this.ui.apiBaseUrlSetting.addEventListener("change", () => void this.saveBackendSettings());
+        this.ui.geminiApiKeySetting.addEventListener("change", () => void this.saveBackendSettings());
         [
             this.ui.displayFontSize,
             this.ui.displayFontWeight,
@@ -181,6 +198,9 @@ class GoldfishDatabasePage {
                 { title: "Name", field: "name", editor: "input", width: 180 },
                 { title: "Aliases", field: "aliasesText", editor: "input", width: 220, visible: false },
                 { title: "Description", field: "description", editor: "textarea", widthGrow: 2.6 },
+                { title: "Family", field: "family", editor: "input", width: 150, visible: false },
+                { title: "Alliances", field: "alliances", editor: "input", width: 150, visible: false },
+                { title: "Abilities", field: "abilities", editor: "input", width: 150, visible: false },
                 {
                     title: "Image",
                     field: "imageUrl",
@@ -200,7 +220,9 @@ class GoldfishDatabasePage {
                     width: 150,
                     formatter: (cell: any) => {
                         const value = this.normalizeColor(cell.getValue());
-                        return `<div class="table-color-cell"><span class="table-color-dot" style="background:${value};"></span><span>${value}</span></div>`;
+                        const dotClass = value === "none" ? "table-color-dot no-color" : "table-color-dot";
+                        const dotStyle = value === "none" ? "" : `style="background:${value};"`;
+                        return `<div class="table-color-cell"><span class="${dotClass}" ${dotStyle}></span><span>${value}</span></div>`;
                     }
                 },
                 {
@@ -250,26 +272,31 @@ class GoldfishDatabasePage {
     }
 
     private async loadBackendSettings() {
-        const { apiBaseUrl } = await browser.storage.local.get("apiBaseUrl");
+        const { apiBaseUrl, geminiApiKey } = await browser.storage.local.get(["apiBaseUrl", "geminiApiKey"]);
         this.ui.apiBaseUrlSetting.value = typeof apiBaseUrl === "string" && apiBaseUrl.trim()
             ? apiBaseUrl.trim()
             : DEFAULT_API_BASE_URL;
+        this.ui.geminiApiKeySetting.value = typeof geminiApiKey === "string" ? geminiApiKey : "";
     }
 
     private async saveBackendSettings() {
         const candidate = this.ui.apiBaseUrlSetting.value.trim();
         const normalized = candidate.replace(/\/+$/, "");
+        const geminiKey = this.ui.geminiApiKeySetting.value.trim();
 
-        if (!/^https?:\/\/.+/i.test(normalized)) {
+        if (candidate && !/^https?:\/\/.+/i.test(normalized)) {
             this.showDisplaySettingsStatus("Use a full URL like http://127.0.0.1:8000", true);
             this.ui.apiBaseUrlSetting.value = normalized || DEFAULT_API_BASE_URL;
             return;
         }
 
-        await browser.storage.local.set({ apiBaseUrl: normalized });
-        this.ui.apiBaseUrlSetting.value = normalized;
-        this.showDisplaySettingsStatus("Backend URL saved");
-        await this.loadNovels(); // Reload novels after backend change
+        await browser.storage.local.set({ 
+            apiBaseUrl: normalized || DEFAULT_API_BASE_URL,
+            geminiApiKey: geminiKey
+        });
+
+        this.ui.apiBaseUrlSetting.value = normalized || DEFAULT_API_BASE_URL;
+        this.showDisplaySettingsStatus("Settings saved");
         await this.handleRescan();
     }
 
@@ -359,6 +386,9 @@ class GoldfishDatabasePage {
             description: character.description,
             imageUrl: character.imageUrl || "",
             highlightColor: this.normalizeColor(character.highlightColor),
+            family: character.family || "",
+            alliances: character.alliances || "",
+            abilities: character.abilities || "",
             isDirty: false,
         };
     }
@@ -371,6 +401,9 @@ class GoldfishDatabasePage {
             description: row.description.trim(),
             imageUrl: row.imageUrl.trim(),
             highlightColor: this.normalizeColor(row.highlightColor),
+            family: row.family.trim(),
+            alliances: row.alliances.trim(),
+            abilities: row.abilities.trim(),
         };
     }
 
@@ -448,6 +481,9 @@ class GoldfishDatabasePage {
             aliases: this.ui.charAliasesInput.value.split(",").map((value) => value.trim()).filter(Boolean),
             description: this.ui.charDescriptionInput.value.trim(),
             imageUrl: this.ui.charImageInput.value.trim(),
+            family: this.ui.charFamilyInput.value.trim(),
+            alliances: this.ui.charAlliancesInput.value.trim(),
+            abilities: this.ui.charAbilitiesInput.value.trim(),
             highlightColor: this.normalizeColor(this.ui.charColorInput.value),
         };
 
@@ -463,6 +499,9 @@ class GoldfishDatabasePage {
             this.ui.charAliasesInput.value = "";
             this.ui.charDescriptionInput.value = "";
             this.ui.charImageInput.value = "";
+            this.ui.charFamilyInput.value = "";
+            this.ui.charAlliancesInput.value = "";
+            this.ui.charAbilitiesInput.value = "";
             this.setHighlightColor(DEFAULT_HIGHLIGHT_COLOR);
             await this.loadCharactersForCurrentNovel();
             this.showStatus(`Added ${payload.name}`);
@@ -489,6 +528,9 @@ class GoldfishDatabasePage {
                 data.description,
                 data.imageUrl,
                 data.highlightColor,
+                data.family,
+                data.alliances,
+                data.abilities,
             ].some((value) => value.toLowerCase().includes(query));
         });
     }
@@ -509,8 +551,9 @@ class GoldfishDatabasePage {
     }
 
     private normalizeHexColor(value: string | undefined): string | null {
-        const trimmed = String(value || "").trim();
-        if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase();
+        const trimmed = String(value || "").trim().toLowerCase();
+        if (trimmed === "none") return "none";
+        if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed;
         return null;
     }
 
@@ -601,7 +644,9 @@ class GoldfishDatabasePage {
 
     private renderHighlightPreview(settings: HighlightDisplaySettings, colorOverride?: string) {
         const preview = this.ui.highlightPreviewWord;
-        const previewColor = this.normalizeHexColor(colorOverride || this.ui.charColorInput.value) || DEFAULT_HIGHLIGHT_COLOR;
+        const rawColor = this.normalizeHexColor(colorOverride || this.ui.charColorInput.value) || DEFAULT_HIGHLIGHT_COLOR;
+        const isNone = rawColor === "none";
+        const previewColor = isNone ? "inherit" : rawColor;
 
         this.ui.displayFontSize.value = String(settings.fontSizePx);
         this.ui.displayHighlightLimit.value = String(settings.highlightLimitPerChar);
@@ -623,9 +668,10 @@ class GoldfishDatabasePage {
         this.ui.displaySettingsStatus.classList.toggle("error", isError);
         this.ui.displaySettingsStatus.classList.remove("hidden");
 
+        const delay = isError ? 6000 : 3000;
         this.displaySettingsStatusTimeout = setTimeout(() => {
             this.ui.displaySettingsStatus.classList.add("hidden");
-        }, 1200);
+        }, delay);
     }
 
     private syncColumnVisibility() {
@@ -642,6 +688,24 @@ class GoldfishDatabasePage {
         } else {
             this.table?.hideColumn("imageUrl");
         }
+
+        if (this.ui.toggleFamilyColumn.checked) {
+            this.table?.showColumn("family");
+        } else {
+            this.table?.hideColumn("family");
+        }
+
+        if (this.ui.toggleAlliancesColumn.checked) {
+            this.table?.showColumn("alliances");
+        } else {
+            this.table?.hideColumn("alliances");
+        }
+
+        if (this.ui.toggleAbilitiesColumn.checked) {
+            this.table?.showColumn("abilities");
+        } else {
+            this.table?.hideColumn("abilities");
+        }
     }
 
     private showStatus(message: string, isError = false) {
@@ -651,9 +715,10 @@ class GoldfishDatabasePage {
         this.ui.tableStatus.classList.toggle("error", isError);
         this.ui.tableStatus.classList.remove("hidden");
 
+        const delay = isError ? 6000 : 3000;
         this.statusTimeout = setTimeout(() => {
             this.ui.tableStatus.classList.add("hidden");
-        }, 2200);
+        }, delay);
     }
 
     private formatError(error: unknown, fallback: string): string {
@@ -663,6 +728,36 @@ class GoldfishDatabasePage {
 
         return fallback;
     }
+
+    private async handleTestAiConnection() {
+        const btn = this.ui.testAiConnBtn;
+        const originalText = btn.textContent;
+        
+        try {
+            btn.disabled = true;
+            btn.textContent = "Testing...";
+            this.showDisplaySettingsStatus("Testing Gemini connection...");
+            
+            await aiService.testConnection();
+            
+            this.showDisplaySettingsStatus("Connection successful! API key is valid.");
+            btn.style.borderColor = "#52c41a";
+            btn.style.color = "#52c41a";
+        } catch (error) {
+            console.error("[Goldfish AI] Connection test failed:", error);
+            this.showDisplaySettingsStatus(this.formatError(error, "Connection failed"), true);
+            btn.style.borderColor = "#ff4d4f";
+            btn.style.color = "#ff4d4f";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            setTimeout(() => {
+                btn.style.borderColor = "";
+                btn.style.color = "";
+            }, 3000);
+        }
+    }
+
     private async handleRescan() {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         if (!tabs[0]?.id) return;

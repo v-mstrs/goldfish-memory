@@ -1,4 +1,4 @@
-import { browser } from "wxt/browser";
+
 
 export interface Novel {
     id: number;
@@ -13,6 +13,9 @@ export interface Character {
     description: string;
     imageUrl?: string;
     highlightColor?: string;
+    family?: string;
+    alliances?: string;
+    abilities?: string;
 }
 
 interface NovelDetailResponse {
@@ -25,6 +28,9 @@ interface NovelDetailResponse {
         description: string;
         image_url?: string | null;
         highlight_color?: string | null;
+        family?: string | null;
+        alliances?: string | null;
+        abilities?: string | null;
         aliases: string[];
     }>;
 }
@@ -40,6 +46,9 @@ interface CharacterApiResponse {
     description: string | null;
     image_url?: string | null;
     highlight_color?: string | null;
+    family?: string | null;
+    alliances?: string | null;
+    abilities?: string | null;
     aliases: string[];
 }
 
@@ -110,7 +119,10 @@ export class ApiService {
             aliases: char.aliases || [],
             description: char.description || "",
             imageUrl: char.image_url || "",
-            highlightColor: char.highlight_color || ""
+            highlightColor: char.highlight_color || "",
+            family: char.family || "",
+            alliances: char.alliances || "",
+            abilities: char.abilities || ""
         }));
     }
 
@@ -122,7 +134,10 @@ export class ApiService {
                 aliases: character.aliases.map(alias => alias.trim()).filter(Boolean),
                 description: character.description.trim(),
                 image_url: character.imageUrl?.trim() || "",
-                highlight_color: character.highlightColor?.trim() || ""
+                highlight_color: character.highlightColor?.trim() || "",
+                family: character.family?.trim() || "",
+                alliances: character.alliances?.trim() || "",
+                abilities: character.abilities?.trim() || ""
             })
         });
         return result.id;
@@ -136,7 +151,10 @@ export class ApiService {
                 aliases: character.aliases.map(alias => alias.trim()).filter(Boolean),
                 description: character.description.trim(),
                 image_url: character.imageUrl?.trim() || "",
-                highlight_color: character.highlightColor?.trim() || ""
+                highlight_color: character.highlightColor?.trim() || "",
+                family: character.family?.trim() || "",
+                alliances: character.alliances?.trim() || "",
+                abilities: character.abilities?.trim() || ""
             })
         });
 
@@ -146,7 +164,10 @@ export class ApiService {
             aliases: result.aliases || [],
             description: result.description || "",
             imageUrl: result.image_url || "",
-            highlightColor: result.highlight_color || ""
+            highlightColor: result.highlight_color || "",
+            family: result.family || "",
+            alliances: result.alliances || "",
+            abilities: result.abilities || ""
         };
     }
 

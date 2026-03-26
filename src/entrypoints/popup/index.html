@@ -14,7 +14,7 @@
         <div id="novelToast" class="toast hidden"></div> <!--popup when new novel is created-->
 
         <div class="row" style="justify-content: center; position: relative;">
-            <img src="goldfish-white.png" id="rescanPage" width="60px" height="auto">
+            <img src="/goldfish-white.png" id="rescanPage" width="60px" height="auto">
             <h1>goldfish memory</h1>
             <button id="optionsBtn" title="Open Options">⚙</button>
         </div>
@@ -45,6 +45,7 @@
         <div class="color-picker-group">
             <div class="color-picker-label">Highlight Color</div>
             <div id="charHighlightPalette" class="color-palette">
+                <button type="button" class="color-swatch no-color" data-color="none" style="--swatch-color: transparent;" title="No color"></button>
                 <button type="button" class="color-swatch selected" data-color="#c5daff" style="--swatch-color: #c5daff;" title="Default blue"></button>
                 <button type="button" class="color-swatch" data-color="#ff8a80" style="--swatch-color: #ff8a80;" title="Soft red"></button>
                 <button type="button" class="color-swatch" data-color="#ffd180" style="--swatch-color: #ffd180;" title="Warm gold"></button>
@@ -52,7 +53,6 @@
                 <button type="button" class="color-swatch" data-color="#80deea" style="--swatch-color: #80deea;" title="Cyan"></button>
                 <button type="button" class="color-swatch" data-color="#b39ddb" style="--swatch-color: #b39ddb;" title="Lavender"></button>
                 <button type="button" class="color-swatch" data-color="#f48fb1" style="--swatch-color: #f48fb1;" title="Pink"></button>
-                <button type="button" class="color-swatch" data-color="#e0e0e0" style="--swatch-color: #e0e0e0;" title="Light gray"></button>
             </div>
             <input type="text" id="charHighlightColor" placeholder="#c5daff">
         </div>
@@ -71,6 +71,12 @@
                 <span>Backend URL</span>
                 <input id="apiBaseUrlSetting" type="text" placeholder="http://127.0.0.1:8000">
                 <small class="settings-help">Change the backend host or port here. Example: `http://192.168.1.20:8000`.</small>
+            </label>
+
+            <label class="settings-field">
+                <span>Gemini API Key</span>
+                <input id="geminiApiKeySetting" type="password" placeholder="AI API Key...">
+                <small class="settings-help">Required for AI character extraction. Get one from Google AI Studio.</small>
             </label>
 
             <label class="settings-field">

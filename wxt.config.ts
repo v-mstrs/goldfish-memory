@@ -20,8 +20,8 @@ export default defineConfig({
         name: 'Goldfish Memory',
         version: '1.0.0',
         icons: {
-            48: 'goldfish-white.png',
-            128: 'goldfish-white.png',
+            48: '/goldfish-white.png',
+            128: '/goldfish-white.png',
         },
         description: 'A browser extension that helps you remember characters in web novels.',
         permissions: [
@@ -35,7 +35,11 @@ export default defineConfig({
         browser_specific_settings: firefoxBrowserSettings,
         action: {
             default_title: 'Goldfish Memory',
-            default_popup: 'popup.html'
+            default_popup: 'popup.html',
+            default_icon: {
+                48: '/goldfish-white.png',
+                128: '/goldfish-white.png',
+            }
         }
     },
 });
