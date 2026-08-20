@@ -29,7 +29,7 @@ Goldfish Memory stores local UI settings in extension storage and can send chara
 ## Setup
 
 ### Requirements
-- **Node.js**: v18+
+- **Node.js**: v22+
 - **npm**: v9+
 
 ### Installation
@@ -74,6 +74,7 @@ npm run build:ff
 - `fenrirealm.com`
 - `mavintranslations.com`
 - `wuxiaworld.com`
+- `skydemonorder.com`
 
 *Add more in `src/sites.ts`.*
 

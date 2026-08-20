@@ -39,8 +39,28 @@ interface CharacterRow {
     isDirty?: boolean;
 }
 
-class GoldfishDatabasePage {
-    private table: any;
+interface TableRow {
+    getData(): CharacterRow;
+    select(): void;
+}
+
+interface TableCell {
+    getValue(): unknown;
+    getRow(): TableRow;
+}
+
+interface CharacterTable {
+    updateData(rows: CharacterRow[]): void;
+    replaceData(rows: CharacterRow[]): void;
+    deleteRow(id: number): void;
+    clearFilter(includeHeaderFilters?: boolean): void;
+    setFilter(filter: (row: CharacterRow) => boolean): void;
+    showColumn(field: string): void;
+    hideColumn(field: string): void;
+}
+
+class CharacterLibraryPage {
+    private table!: CharacterTable;
     private novels: Novel[] = [];
     private currentNovelSlug = "";
     private currentRows: CharacterRow[] = [];
@@ -48,6 +68,8 @@ class GoldfishDatabasePage {
     private displaySettingsStatusTimeout: ReturnType<typeof setTimeout> | null = null;
 
     private ui = {
+        novelForm: document.getElementById("novelForm") as HTMLFormElement,
+        characterForm: document.getElementById("characterForm") as HTMLFormElement,
         selectedNovelLabel: document.getElementById("selectedNovelLabel") as HTMLSpanElement,
         characterCountLabel: document.getElementById("characterCountLabel") as HTMLSpanElement,
         apiBaseUrlSetting: document.getElementById("apiBaseUrlSetting") as HTMLInputElement,
@@ -93,8 +115,14 @@ class GoldfishDatabasePage {
         this.ui.clearFilterBtn.addEventListener("click", () => this.clearSearchFilter());
         this.ui.toggleAliasesColumn.addEventListener("change", () => this.syncColumnVisibility());
         this.ui.toggleImageColumn.addEventListener("change", () => this.syncColumnVisibility());
-        this.ui.addNovelBtn.addEventListener("click", () => void this.handleAddNovel());
-        this.ui.addCharacterBtn.addEventListener("click", () => void this.handleAddCharacter());
+        this.ui.novelForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            void this.handleAddNovel();
+        });
+        this.ui.characterForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            void this.handleAddCharacter();
+        });
         this.ui.charHighlightPalette.addEventListener("click", (event) => this.handlePaletteClick(event));
         this.ui.charColorInput.addEventListener("input", () => this.handleHighlightColorInput());
         this.ui.apiBaseUrlSetting.addEventListener("change", () => void this.saveBackendSettings());
@@ -105,20 +133,6 @@ class GoldfishDatabasePage {
             this.ui.displayHighlightLimit,
         ].forEach((field) => {
             field.addEventListener("input", () => void this.saveDisplaySettings());
-        });
-
-        this.ui.newNovelInput.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                void this.handleAddNovel();
-            }
-        });
-
-        this.ui.charNameInput.addEventListener("keydown", (event) => {
-            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-                event.preventDefault();
-                void this.handleAddCharacter();
-            }
         });
 
         browser.storage.onChanged.addListener((changes, area) => {
@@ -167,6 +181,69 @@ class GoldfishDatabasePage {
         await this.handleRescan();
     }
 
+    private createImageCell(value: unknown): HTMLElement {
+        const container = document.createElement("span");
+        const rawUrl = typeof value === "string" ? value.trim() : "";
+        if (!rawUrl) {
+            container.className = "table-empty-value";
+            container.textContent = "No image";
+            return container;
+        }
+
+        try {
+            const url = new URL(rawUrl);
+            if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Unsupported URL protocol");
+
+            const link = document.createElement("a");
+            link.className = "table-image-link";
+            link.href = url.href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Open";
+            return link;
+        } catch {
+            container.className = "table-empty-value";
+            container.textContent = "Invalid URL";
+            return container;
+        }
+    }
+
+    private createColorCell(value: unknown): HTMLElement {
+        const color = this.normalizeColor(typeof value === "string" ? value : "");
+        const container = document.createElement("div");
+        container.className = "table-color-cell";
+
+        const dot = document.createElement("span");
+        dot.className = "table-color-dot";
+        dot.style.backgroundColor = color;
+        dot.setAttribute("aria-hidden", "true");
+
+        const label = document.createElement("span");
+        label.textContent = color;
+        container.append(dot, label);
+        return container;
+    }
+
+    private createActionsCell(row: CharacterRow): HTMLElement {
+        const container = document.createElement("div");
+        container.className = "table-action-group";
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = row.isDirty ? "table-save-button dirty" : "table-save-button";
+        saveButton.textContent = "Save";
+        saveButton.setAttribute("aria-label", `Save ${row.name}`);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "table-delete-button";
+        deleteButton.textContent = "Delete";
+        deleteButton.setAttribute("aria-label", `Delete ${row.name}`);
+
+        container.append(saveButton, deleteButton);
+        return container;
+    }
+
     private createTable() {
         this.table = new Tabulator("#characterTable", {
             layout: "fitColumns",
@@ -187,21 +264,14 @@ class GoldfishDatabasePage {
                     editor: "input",
                     width: 190,
                     visible: false,
-                    formatter: (cell: any) => {
-                        const value = cell.getValue();
-                        if (!value) return "<span style='color:#6f8795;'>No image</span>";
-                        return `<a class="table-image-link" href="${value}" target="_blank" rel="noreferrer">Open</a>`;
-                    }
+                    formatter: (cell: TableCell) => this.createImageCell(cell.getValue())
                 },
                 {
                     title: "Color",
                     field: "highlightColor",
                     editor: "input",
                     width: 150,
-                    formatter: (cell: any) => {
-                        const value = this.normalizeColor(cell.getValue());
-                        return `<div class="table-color-cell"><span class="table-color-dot" style="background:${value};"></span><span>${value}</span></div>`;
-                    }
+                    formatter: (cell: TableCell) => this.createColorCell(cell.getValue())
                 },
                 {
                     title: "",
@@ -210,31 +280,30 @@ class GoldfishDatabasePage {
                     hozAlign: "center",
                     headerSort: false,
                     resizable: false,
-                    formatter: (cell: any) => {
-                        const row = cell.getRow().getData() as CharacterRow;
-                        const saveClass = row.isDirty ? "table-save-button dirty" : "table-save-button";
-                        return `<div class="table-action-group"><button class="${saveClass}" type="button">Save</button><button class="table-delete-button" type="button">Delete</button></div>`;
+                    formatter: (cell: TableCell) => {
+                        const row = cell.getRow().getData();
+                        return this.createActionsCell(row);
                     },
-                    cellClick: (_event: Event, cell: any) => {
+                    cellClick: (_event: Event, cell: TableCell) => {
                         const row = cell.getRow();
                         const target = _event.target as HTMLElement;
 
                         if (target.closest(".table-save-button")) {
-                            void this.persistRowEdit(row.getData() as CharacterRow);
+                            void this.persistRowEdit(row.getData());
                             return;
                         }
 
                         if (target.closest(".table-delete-button")) {
-                            void this.handleDeleteCharacter(row.getData() as CharacterRow);
+                            void this.handleDeleteCharacter(row.getData());
                         }
                     }
                 }
             ],
-            rowClick: (_event: Event, row: any) => {
+            rowClick: (_event: Event, row: TableRow) => {
                 row.select();
             },
-            cellEdited: (cell: any) => {
-                const rowData = cell.getRow().getData() as CharacterRow;
+            cellEdited: (cell: TableCell) => {
+                const rowData = cell.getRow().getData();
                 rowData.isDirty = true;
                 this.currentRows = this.currentRows.map((row) => row.id === rowData.id ? { ...rowData } : row);
                 this.table.updateData([rowData]);
@@ -246,7 +315,7 @@ class GoldfishDatabasePage {
             tableBuilt: () => {
                 this.syncColumnVisibility();
             }
-        });
+        }) as CharacterTable;
     }
 
     private async loadBackendSettings() {
@@ -277,7 +346,7 @@ class GoldfishDatabasePage {
         try {
             const stored = await browser.storage.local.get("activeNovelSlug");
             this.novels = await apiService.getAllNovels();
-            this.ui.novelSelect.innerHTML = "";
+            this.ui.novelSelect.replaceChildren();
 
             if (this.novels.length === 0) {
                 this.currentNovelSlug = "";
@@ -298,6 +367,8 @@ class GoldfishDatabasePage {
                 || "";
 
             const resolvedNovel = this.novels.find((novel) => novel.slug === nextSlug) || this.novels[0];
+            if (!resolvedNovel) return;
+
             this.currentNovelSlug = resolvedNovel.slug;
             this.ui.novelSelect.value = resolvedNovel.slug;
             this.renderNovelSummary();
@@ -629,18 +700,19 @@ class GoldfishDatabasePage {
     }
 
     private syncColumnVisibility() {
+        // Tabulator may fire tableBuilt before the constructor assignment completes.
         if (!this.table) return;
 
         if (this.ui.toggleAliasesColumn.checked) {
-            this.table?.showColumn("aliasesText");
+            this.table.showColumn("aliasesText");
         } else {
-            this.table?.hideColumn("aliasesText");
+            this.table.hideColumn("aliasesText");
         }
 
         if (this.ui.toggleImageColumn.checked) {
-            this.table?.showColumn("imageUrl");
+            this.table.showColumn("imageUrl");
         } else {
-            this.table?.hideColumn("imageUrl");
+            this.table.hideColumn("imageUrl");
         }
     }
 
@@ -675,4 +747,4 @@ class GoldfishDatabasePage {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => new GoldfishDatabasePage());
+document.addEventListener("DOMContentLoaded", () => new CharacterLibraryPage());

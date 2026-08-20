@@ -26,9 +26,15 @@ export const SITES = [
     {
         hostname: "freewebnovel.com",
         contentSelector: "div.txt"
+    },
+    {
+        hostname: "skydemonorder.com",
+        contentSelector: "div#chapter-body"
     }
 
 ] as const;
+
+export type SiteConfig = (typeof SITES)[number];
 
 const normalizeHostname = (hostname: string) => hostname.trim().toLowerCase();
 
@@ -44,5 +50,10 @@ export const SITE_HOST_PERMISSIONS = SITES.map(
 
 export const MATCH_PATTERNS = SITE_HOST_PERMISSIONS;
 
-export const getActiveConfig = () =>
-    SITES.find((s) => window.location.hostname.includes(normalizeHostname(s.hostname)));
+export const getActiveConfig = () => {
+    const currentHostname = normalizeHostname(window.location.hostname);
+    return SITES.find((site) => {
+        const configuredHostname = normalizeHostname(site.hostname);
+        return currentHostname === configuredHostname || currentHostname.endsWith(`.${configuredHostname}`);
+    });
+};

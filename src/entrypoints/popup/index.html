@@ -1,127 +1,154 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="./style.css">
-    <title>goldfish memory</title>
+    <title>Goldfish Memory</title>
 </head>
 
 <body>
     <div class="page-shell">
-    <div class="main">
-        <div id="novelToast" class="toast hidden"></div> <!--popup when new novel is created-->
+        <main class="main" aria-labelledby="popupTitle">
+            <div id="novelToast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
-        <div class="row" style="justify-content: center; position: relative;">
-            <img src="goldfish-white.png" id="rescanPage" width="60px" height="auto">
-            <h1>goldfish memory</h1>
-            <button id="optionsBtn" title="Open Options">⚙</button>
-        </div>
+            <header class="popup-header">
+                <button id="rescanPage" class="logo-button" type="button" aria-label="Rescan the current page" title="Rescan current page">
+                    <img src="/goldfish-icon.png" width="42" height="42" alt="">
+                </button>
+                <h1 id="popupTitle">Goldfish Memory</h1>
+                <button id="optionsBtn" type="button" aria-label="Open options" title="Open options">⚙</button>
+            </header>
 
-        <div class="row">
-            <select id="novelSelect" class="flex-grow">
-                <option value="" disabled selected>Select Novel</option>
-            </select>
-            <button id="toggleNovelDrawer" class="toggle-btn" title="Add New Novel">
-                <span id="arrow">▼</span>
-            </button>
-        </div>
-
-        <div id="novelAddDrawer" class="hidden">
-            <div class="row">
-                <input type="text" id="newNovel" placeholder="New Novel Name...">
-                <button id="saveNovelBtn">Add</button>
-            </div>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #333; margin: 5px 0;">
-
-        <input type="text" id="charName" placeholder="Main Name (e.g. Artoria)">
-        <input type="text" id="charAliases" placeholder="Aliases (Encrid, Enkrid...)">
-
-        <textarea id="charDesc" placeholder="Character Description..."></textarea>
-        <input type="text" id="charImgUrl" placeholder="Image URL">
-        <div class="color-picker-group">
-            <div class="color-picker-label">Highlight Color</div>
-            <div id="charHighlightPalette" class="color-palette">
-                <button type="button" class="color-swatch selected" data-color="#c5daff" style="--swatch-color: #c5daff;" title="Default blue"></button>
-                <button type="button" class="color-swatch" data-color="#ff8a80" style="--swatch-color: #ff8a80;" title="Soft red"></button>
-                <button type="button" class="color-swatch" data-color="#ffd180" style="--swatch-color: #ffd180;" title="Warm gold"></button>
-                <button type="button" class="color-swatch" data-color="#a5d6a7" style="--swatch-color: #a5d6a7;" title="Green"></button>
-                <button type="button" class="color-swatch" data-color="#80deea" style="--swatch-color: #80deea;" title="Cyan"></button>
-                <button type="button" class="color-swatch" data-color="#b39ddb" style="--swatch-color: #b39ddb;" title="Lavender"></button>
-                <button type="button" class="color-swatch" data-color="#f48fb1" style="--swatch-color: #f48fb1;" title="Pink"></button>
-                <button type="button" class="color-swatch" data-color="#e0e0e0" style="--swatch-color: #e0e0e0;" title="Light gray"></button>
-            </div>
-            <input type="text" id="charHighlightColor" placeholder="#c5daff">
-        </div>
-
-        <button id="addCharBtn">Add Character</button>
-
-      </div>
-
-      <aside class="settings-panel">
-        <div class="settings-card">
-            <div class="settings-kicker">Display Settings</div>
-            <h2>Reader Highlight Style</h2>
-            <p class="settings-copy">These only affect how highlights render on this device.</p>
-
-            <label class="settings-field">
-                <span>Backend URL</span>
-                <input id="apiBaseUrlSetting" type="text" placeholder="http://127.0.0.1:8000">
-                <small class="settings-help">Change the backend host or port here. Example: `http://192.168.1.20:8000`.</small>
-            </label>
-
-            <label class="settings-field">
-                <span>Font Size</span>
-                <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">
-                <small class="settings-help">Sets the size of highlighted names while reading.</small>
-            </label>
-
-            <label class="settings-field">
-                <span>Underline</span>
-                <select id="displayUnderlineStyle">
-                    <option value="none">No underline</option>
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="dotted">Dotted</option>
-                    <option value="wavy">Wavy</option>
-                </select>
-                <small class="settings-help">Choose how character names are underlined while reading.</small>
-            </label>
-
-            <label class="settings-field">
-                <span>Text Style</span>
-                <select id="displayTextStyle">
-                    <option value="700-normal">Bold</option>
-                    <option value="600-normal">Semibold</option>
-                    <option value="400-normal">Normal</option>
-                    <option value="400-italic">Italic</option>
-                    <option value="600-italic">Semibold Italic</option>
-                    <option value="700-italic">Bold Italic</option>
-                </select>
-                <small class="settings-help">Controls font weight and italic styling for highlighted names.</small>
-            </label>
-
-            <label class="settings-field">
-                <span>Max Highlights Per Character</span>
-                <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
-                <small class="settings-help">Caps how many times the same character can be highlighted on a page.</small>
-            </label>
-
-            <div class="settings-preview">
-                <div class="settings-preview-label">Preview</div>
-                <div class="settings-preview-copy">
-                    The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
+            <section class="stack" aria-labelledby="novelSectionTitle">
+                <h2 id="novelSectionTitle" class="sr-only">Novel selection</h2>
+                <div class="row">
+                    <label class="sr-only" for="novelSelect">Active novel</label>
+                    <select id="novelSelect" class="flex-grow">
+                        <option value="" disabled selected>Select Novel</option>
+                    </select>
+                    <button id="toggleNovelDrawer" class="toggle-btn" type="button" aria-label="Add a novel" aria-controls="novelAddDrawer" aria-expanded="false" title="Add a novel">
+                        <span id="arrow" aria-hidden="true">▼</span>
+                    </button>
                 </div>
-            </div>
 
-            <div id="displaySettingsStatus" class="settings-status hidden">Saved</div>
-        </div>
-      </aside>
+                <div id="novelAddDrawer" class="hidden">
+                    <form id="novelForm" class="row">
+                        <label class="sr-only" for="newNovel">Novel title</label>
+                        <input type="text" id="newNovel" name="novelTitle" placeholder="New novel name" autocomplete="off" required>
+                        <button id="saveNovelBtn" type="submit">Add</button>
+                    </form>
+                </div>
+            </section>
+
+            <hr class="section-divider">
+
+            <form id="characterForm" class="character-form" aria-labelledby="characterSectionTitle">
+                <h2 id="characterSectionTitle" class="sr-only">Add a character</h2>
+
+                <label class="form-field" for="charName">
+                    <span>Name</span>
+                    <input type="text" id="charName" name="characterName" placeholder="Artoria" autocomplete="off" required>
+                </label>
+
+                <label class="form-field" for="charAliases">
+                    <span>Aliases</span>
+                    <input type="text" id="charAliases" name="characterAliases" placeholder="King Arthur, Saber" autocomplete="off">
+                </label>
+
+                <label class="form-field" for="charDesc">
+                    <span>Description</span>
+                    <textarea id="charDesc" name="characterDescription" placeholder="Short reminder for your future self" required></textarea>
+                </label>
+
+                <label class="form-field" for="charImgUrl">
+                    <span>Image URL</span>
+                    <input type="url" id="charImgUrl" name="characterImageUrl" placeholder="https://example.com/image.jpg" inputmode="url" autocomplete="url">
+                </label>
+
+                <fieldset class="color-picker-group">
+                    <legend class="color-picker-label">Highlight color</legend>
+                    <div id="charHighlightPalette" class="color-palette" aria-label="Preset highlight colors">
+                        <button type="button" class="color-swatch selected" data-color="#c5daff" aria-label="Default blue" aria-pressed="true"></button>
+                        <button type="button" class="color-swatch" data-color="#ff8a80" aria-label="Soft red" aria-pressed="false"></button>
+                        <button type="button" class="color-swatch" data-color="#ffd180" aria-label="Warm gold" aria-pressed="false"></button>
+                        <button type="button" class="color-swatch" data-color="#a5d6a7" aria-label="Green" aria-pressed="false"></button>
+                        <button type="button" class="color-swatch" data-color="#80deea" aria-label="Cyan" aria-pressed="false"></button>
+                        <button type="button" class="color-swatch" data-color="#b39ddb" aria-label="Lavender" aria-pressed="false"></button>
+                        <button type="button" class="color-swatch" data-color="#f48fb1" aria-label="Pink" aria-pressed="false"></button>
+                        <button type="button" class="color-swatch" data-color="#e0e0e0" aria-label="Light gray" aria-pressed="false"></button>
+                    </div>
+                    <label class="form-field" for="charHighlightColor">
+                        <span>Hex color</span>
+                        <input type="text" id="charHighlightColor" name="characterColor" value="#c5daff" placeholder="#c5daff" pattern="#[0-9a-fA-F]{6}" spellcheck="false">
+                    </label>
+                </fieldset>
+
+                <button id="addCharBtn" type="submit">Add Character</button>
+            </form>
+        </main>
+
+        <aside class="settings-panel" aria-labelledby="settingsTitle">
+            <div class="settings-card">
+                <div class="settings-kicker">Display Settings</div>
+                <h2 id="settingsTitle">Reader Highlight Style</h2>
+                <p class="settings-copy">These settings only affect highlights on this device.</p>
+
+                <label class="settings-field" for="apiBaseUrlSetting">
+                    <span>Backend URL</span>
+                    <input id="apiBaseUrlSetting" type="url" inputmode="url" autocomplete="url" placeholder="http://127.0.0.1:8000" aria-describedby="apiBaseUrlHelp">
+                    <small id="apiBaseUrlHelp" class="settings-help">Use a complete URL, for example http://192.168.1.20:8000.</small>
+                </label>
+
+                <label class="settings-field" for="displayFontSize">
+                    <span>Font Size</span>
+                    <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">
+                    <small class="settings-help">Sets the size of highlighted names while reading.</small>
+                </label>
+
+                <label class="settings-field" for="displayUnderlineStyle">
+                    <span>Underline</span>
+                    <select id="displayUnderlineStyle">
+                        <option value="none">No underline</option>
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                        <option value="wavy">Wavy</option>
+                    </select>
+                    <small class="settings-help">Choose how character names are underlined while reading.</small>
+                </label>
+
+                <label class="settings-field" for="displayTextStyle">
+                    <span>Text Style</span>
+                    <select id="displayTextStyle">
+                        <option value="700-normal">Bold</option>
+                        <option value="600-normal">Semibold</option>
+                        <option value="400-normal">Normal</option>
+                        <option value="400-italic">Italic</option>
+                        <option value="600-italic">Semibold Italic</option>
+                        <option value="700-italic">Bold Italic</option>
+                    </select>
+                    <small class="settings-help">Controls font weight and italic styling.</small>
+                </label>
+
+                <label class="settings-field" for="displayHighlightLimit">
+                    <span>Max Highlights Per Character</span>
+                    <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
+                    <small class="settings-help">Caps repeated highlights for one character on a page.</small>
+                </label>
+
+                <div class="settings-preview" aria-label="Highlight preview">
+                    <div class="settings-preview-label">Preview</div>
+                    <div class="settings-preview-copy">
+                        The Watch remembered <span id="highlightPreviewWord" class="settings-preview-word">John Snow</span> long after the chapter ended.
+                    </div>
+                </div>
+
+                <div id="displaySettingsStatus" class="settings-status hidden" role="status" aria-live="polite"></div>
+            </div>
+        </aside>
     </div>
 
-  <script type="module" src="./main.ts"></script>
+    <script type="module" src="./main.ts"></script>
 </body>
 </html>

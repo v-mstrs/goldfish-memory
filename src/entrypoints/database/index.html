@@ -5,53 +5,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./style.css">
-    <title>Goldfish Memory Database</title>
+    <title>Character Library</title>
 </head>
 
 <body>
-    <div class="database-page">
+    <div class="library-page">
         <div class="page-shell">
             <main class="main">
-                <div class="page-title">
+                <header class="page-title">
                     <div class="title-block">
-                        <img src="goldfish-white.png" alt="Goldfish Memory logo" class="page-logo">
+                        <img src="/goldfish-icon.png" alt="Goldfish Memory logo" class="page-logo">
                         <div>
-                            <h1>Goldfish Memory Database</h1>
-                            <p class="page-subtitle">Edit saved novels and characters without leaving the extension.</p>
+                            <h1>Character Library</h1>
+                            <p class="page-subtitle">Manage saved novels and characters.</p>
                         </div>
                     </div>
-                </div>
+                </header>
 
-                <div class="stats-row">
-                    <div class="stat-card">
+                <section class="stats-row" aria-label="Library summary">
+                    <article class="stat-card">
                         <span>Selected Novel</span>
                         <strong id="selectedNovelLabel">No novel selected</strong>
-                    </div>
+                    </article>
 
-                    <div class="stat-card">
+                    <article class="stat-card">
                         <span>Characters</span>
                         <strong id="characterCountLabel">0</strong>
                         <span>Visible rows in the current view</span>
-                    </div>
-                </div>
+                    </article>
+                </section>
 
                 <section class="stack highlight-settings-panel">
-                    <div class="panel-title">Settings</div>
+                    <h2 class="panel-title">Settings</h2>
 
                     <div class="highlight-settings-grid">
-                        <label class="settings-field">
+                        <label class="settings-field" for="apiBaseUrlSetting">
                             <span>Backend URL</span>
-                            <input id="apiBaseUrlSetting" type="text" placeholder="http://127.0.0.1:8000">
-                            <small class="settings-help">Change the backend host or port here. Example: `http://192.168.1.20:8000`.</small>
+                            <input id="apiBaseUrlSetting" type="url" inputmode="url" autocomplete="url" placeholder="http://127.0.0.1:8000">
+                            <small class="settings-help">Use a complete URL, for example http://192.168.1.20:8000.</small>
                         </label>
 
-                        <label class="settings-field">
+                        <label class="settings-field" for="displayFontSize">
                             <span>Font Size</span>
                             <input id="displayFontSize" type="number" min="10" max="36" step="1" inputmode="numeric" placeholder="16">
                             <small class="settings-help">Sets the size of highlighted names while reading.</small>
                         </label>
 
-                        <label class="settings-field">
+                        <label class="settings-field" for="displayFontWeight">
                             <span>Font Weight</span>
                             <select id="displayFontWeight">
                                 <option value="700">Bold</option>
@@ -61,7 +61,7 @@
                             <small class="settings-help">Choose how heavy the highlighted text should appear.</small>
                         </label>
 
-                        <label class="settings-field">
+                        <label class="settings-field" for="displayUnderlineStyle">
                             <span>Underline</span>
                             <select id="displayUnderlineStyle">
                                 <option value="none">No underline</option>
@@ -73,10 +73,10 @@
                             <small class="settings-help">Controls the underline style applied to highlighted names.</small>
                         </label>
 
-                        <label class="settings-field">
+                        <label class="settings-field" for="displayHighlightLimit">
                             <span>Max Highlights Per Character</span>
                             <input id="displayHighlightLimit" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="5">
-                            <small class="settings-help">Matches `DEFAULT_HIGHLIGHT_LIMIT_PER_CHAR` and caps repeat highlights per page.</small>
+                            <small class="settings-help">Caps repeated highlights for one character on a page.</small>
                         </label>
                     </div>
 
@@ -87,30 +87,28 @@
                         </div>
                     </div>
 
-                    <div id="displaySettingsStatus" class="status-pill hidden"></div>
+                    <div id="displaySettingsStatus" class="status-pill hidden" role="status" aria-live="polite"></div>
                 </section>
 
-                <div class="stack">
+                <section class="stack" aria-labelledby="filtersTitle">
+                    <h2 id="filtersTitle" class="panel-title">Browse Characters</h2>
                     <div class="row">
-                        <div class="grow">
-                            <div class="label">Novel</div>
+                        <label class="grow form-field" for="novelSelect">
+                            <span class="label">Novel</span>
                             <select id="novelSelect"></select>
-                        </div>
+                        </label>
 
-                        <div class="grow">
-                            <div class="label">Search</div>
+                        <label class="grow form-field" for="searchInput">
+                            <span class="label">Search</span>
                             <input id="searchInput" type="search" placeholder="Search names, aliases, descriptions, image URLs, or colors">
-                        </div>
+                        </label>
 
-                        <div>
-                            <div class="label">&nbsp;</div>
+                        <div class="filter-action">
                             <button id="clearFilterBtn" class="ghost-button" type="button">Clear Filter</button>
                         </div>
                     </div>
 
-                    <div class="row" style="justify-content: space-between;">
-                        <div id="tableStatus" class="status-pill hidden"></div>
-                    </div>
+                    <div id="tableStatus" class="status-pill hidden" role="status" aria-live="polite"></div>
 
                     <div class="row row-wrap">
                         <label class="toggle-option">
@@ -123,66 +121,52 @@
                             <span>Show Image</span>
                         </label>
                     </div>
-                </div>
+                </section>
 
-                <div class="stack">
-                    <div class="panel-title">Characters</div>
+                <section class="stack" aria-labelledby="charactersTitle">
+                    <h2 id="charactersTitle" class="panel-title">Characters</h2>
                     <div class="table-shell">
-                        <div id="characterTable"></div>
+                        <div id="characterTable" aria-label="Characters table"></div>
                     </div>
-                </div>
+                </section>
             </main>
 
             <aside class="sidebar">
-                <section class="sidebar-panel stack">
-                    <div class="panel-title">Add Novel</div>
-
-                    <div>
-                        <div class="label">Title</div>
-                        <input id="newNovelInput" type="text" placeholder="The Legendary Moonlight Sculptor">
-                    </div>
-
-                    <button id="addNovelBtn" class="primary-button" type="button">Create Novel</button>
+                <section class="sidebar-panel">
+                    <form id="novelForm" class="stack" aria-labelledby="addNovelTitle">
+                        <h2 id="addNovelTitle" class="panel-title">Add Novel</h2>
+                        <label class="form-field" for="newNovelInput">
+                            <span class="label">Title</span>
+                            <input id="newNovelInput" name="novelTitle" type="text" placeholder="The Legendary Moonlight Sculptor" autocomplete="off" required>
+                        </label>
+                        <button id="addNovelBtn" class="primary-button" type="submit">Create Novel</button>
+                    </form>
                 </section>
 
-                <section class="sidebar-panel stack">
-                    <div class="panel-title">Add Character</div>
+                <section class="sidebar-panel">
+                    <form id="characterForm" class="stack" aria-labelledby="addCharacterTitle">
+                        <h2 id="addCharacterTitle" class="panel-title">Add Character</h2>
+                        <label class="form-field" for="charNameInput"><span class="label">Name</span><input id="charNameInput" name="characterName" type="text" placeholder="Artoria" autocomplete="off" required></label>
+                        <label class="form-field" for="charAliasesInput"><span class="label">Aliases</span><input id="charAliasesInput" name="characterAliases" type="text" placeholder="King Arthur, Saber" autocomplete="off"></label>
+                        <label class="form-field" for="charDescriptionInput"><span class="label">Description</span><textarea id="charDescriptionInput" name="characterDescription" rows="5" placeholder="Short reminder for your future self" required></textarea></label>
+                        <label class="form-field" for="charImageInput"><span class="label">Image URL</span><input id="charImageInput" name="characterImageUrl" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com/image.jpg"></label>
 
-                    <div>
-                        <div class="label">Name</div>
-                        <input id="charNameInput" type="text" placeholder="Artoria">
-                    </div>
-
-                    <div>
-                        <div class="label">Aliases</div>
-                        <input id="charAliasesInput" type="text" placeholder="King Arthur, Saber">
-                    </div>
-
-                    <div>
-                        <div class="label">Description</div>
-                        <textarea id="charDescriptionInput" rows="5" placeholder="Short reminder for your future self..."></textarea>
-                    </div>
-
-                    <div>
-                        <div class="label">Image URL</div>
-                        <input id="charImageInput" type="url" placeholder="https://...">
-                    </div>
-
-                    <div class="color-picker-group">
-                        <div class="color-picker-label">Highlight Color</div>
-                        <div id="charHighlightPalette" class="color-palette">
-                            <button type="button" class="color-swatch selected" data-color="#c5daff" style="--swatch-color: #c5daff;" title="Default blue"></button>
-                            <button type="button" class="color-swatch" data-color="#ff8a80" style="--swatch-color: #ff8a80;" title="Soft red"></button>
-                            <button type="button" class="color-swatch" data-color="#ffd180" style="--swatch-color: #ffd180;" title="Warm gold"></button>
-                            <button type="button" class="color-swatch" data-color="#a5d6a7" style="--swatch-color: #a5d6a7;" title="Green"></button>
-                            <button type="button" class="color-swatch" data-color="#80deea" style="--swatch-color: #80deea;" title="Cyan"></button>
-                            <button type="button" class="color-swatch" data-color="#b39ddb" style="--swatch-color: #b39ddb;" title="Lavender"></button>
-                            <button type="button" class="color-swatch" data-color="#f48fb1" style="--swatch-color: #f48fb1;" title="Pink"></button>
-                            <button type="button" class="color-swatch" data-color="#e0e0e0" style="--swatch-color: #e0e0e0;" title="Light gray"></button>
-                        </div>
-                        <input id="charColorInput" type="text" value="#c5daff" placeholder="#c5daff">
-                    </div>
-                    <button id="addCharacterBtn" class="primary-button" type="button">Add Character</button>
+                        <fieldset class="color-picker-group">
+                            <legend class="color-picker-label">Highlight Color</legend>
+                            <div id="charHighlightPalette" class="color-palette" aria-label="Preset highlight colors">
+                                <button type="button" class="color-swatch selected" data-color="#c5daff" aria-label="Default blue" aria-pressed="true"></button>
+                                <button type="button" class="color-swatch" data-color="#ff8a80" aria-label="Soft red" aria-pressed="false"></button>
+                                <button type="button" class="color-swatch" data-color="#ffd180" aria-label="Warm gold" aria-pressed="false"></button>
+                                <button type="button" class="color-swatch" data-color="#a5d6a7" aria-label="Green" aria-pressed="false"></button>
+                                <button type="button" class="color-swatch" data-color="#80deea" aria-label="Cyan" aria-pressed="false"></button>
+                                <button type="button" class="color-swatch" data-color="#b39ddb" aria-label="Lavender" aria-pressed="false"></button>
+                                <button type="button" class="color-swatch" data-color="#f48fb1" aria-label="Pink" aria-pressed="false"></button>
+                                <button type="button" class="color-swatch" data-color="#e0e0e0" aria-label="Light gray" aria-pressed="false"></button>
+                            </div>
+                            <label class="form-field" for="charColorInput"><span class="label">Hex color</span><input id="charColorInput" name="characterColor" type="text" value="#c5daff" placeholder="#c5daff" pattern="#[0-9a-fA-F]{6}" spellcheck="false"></label>
+                        </fieldset>
+                        <button id="addCharacterBtn" class="primary-button" type="submit">Add Character</button>
+                    </form>
                 </section>
             </aside>
         </div>

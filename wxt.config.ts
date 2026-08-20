@@ -16,12 +16,26 @@ const firefoxBrowserSettings = {
 
 export default defineConfig({
     srcDir: 'src',
+    publicDir: 'src/public',
+    hooks: {
+        'build:manifestGenerated': (wxt, manifest) => {
+            if (wxt.config.browser !== 'firefox' || wxt.config.manifestVersion !== 3) return;
+
+            const contentSecurityPolicy = manifest.content_security_policy;
+            if (typeof contentSecurityPolicy === 'object' && contentSecurityPolicy !== null) {
+                delete contentSecurityPolicy.sandbox;
+            }
+        },
+    },
     manifest: {
         name: 'Goldfish Memory',
         version: '1.0.0',
         icons: {
-            48: 'goldfish-white.png',
-            128: 'goldfish-white.png',
+            16: 'goldfish-icon.png',
+            32: 'goldfish-icon.png',
+            48: 'goldfish-icon.png',
+            96: 'goldfish-icon.png',
+            128: 'goldfish-icon.png',
         },
         description: 'A browser extension that helps you remember characters in web novels.',
         permissions: [
@@ -35,7 +49,13 @@ export default defineConfig({
         browser_specific_settings: firefoxBrowserSettings,
         action: {
             default_title: 'Goldfish Memory',
-            default_popup: 'popup.html'
+            default_popup: 'popup.html',
+            default_icon: {
+                16: 'goldfish-icon.png',
+                32: 'goldfish-icon.png',
+                48: 'goldfish-icon.png',
+                96: 'goldfish-icon.png',
+            },
         }
     },
 });

@@ -3,10 +3,12 @@ import "wxt/browser";
 
 declare module "wxt/browser" {
   export type PublicPath =
+    | ""
     | "/"
     | "/background.js"
     | "/content-scripts/content.js"
     | "/database.html"
+    | "/goldfish-icon.png"
     | "/goldfish-white.png"
     | "/popup.html"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>

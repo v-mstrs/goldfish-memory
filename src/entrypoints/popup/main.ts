@@ -53,6 +53,7 @@ class GoldfishPopup {
             status: document.getElementById("displaySettingsStatus") as HTMLDivElement,
         },
         novel: {
+            form: document.getElementById("novelForm") as HTMLFormElement,
             select: document.getElementById("novelSelect") as HTMLSelectElement,
             name: document.getElementById("newNovel") as HTMLInputElement,
             saveBtn: document.getElementById("saveNovelBtn") as HTMLButtonElement,
@@ -62,6 +63,7 @@ class GoldfishPopup {
             drawer: document.getElementById("novelAddDrawer") as HTMLDivElement,
         },
         char: {
+            form: document.getElementById("characterForm") as HTMLFormElement,
             name: document.getElementById("charName") as HTMLInputElement,
             aliases: document.getElementById("charAliases") as HTMLInputElement,
             desc: document.getElementById("charDesc") as HTMLTextAreaElement,
@@ -71,7 +73,7 @@ class GoldfishPopup {
             saveBtn: document.getElementById("addCharBtn") as HTMLButtonElement,
         },
         logo: {
-            img: document.getElementById("rescanPage") as HTMLImageElement
+            button: document.getElementById("rescanPage") as HTMLButtonElement
         }
     };
 
@@ -106,8 +108,14 @@ class GoldfishPopup {
     }
 
     private setupListeners() {
-        this.ui.novel.saveBtn.addEventListener("click", () => void this.handleSaveNovel());
-        this.ui.char.saveBtn.addEventListener("click", () => void this.handleSaveCharacter());
+        this.ui.novel.form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            void this.handleSaveNovel();
+        });
+        this.ui.char.form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            void this.handleSaveCharacter();
+        });
         this.ui.novel.toggleBtn.addEventListener("click", () => this.toggleDrawer());
         this.ui.novel.select.addEventListener("change", () => void this.handleNovelSelectionChange());
 
@@ -152,21 +160,7 @@ class GoldfishPopup {
             });
         });
 
-        this.ui.novel.name.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                void this.handleSaveNovel();
-            }
-        });
-
-        this.ui.char.name.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                void this.handleSaveCharacter();
-            }
-        });
-
-        this.ui.logo.img.addEventListener("click", () => void this.handleRescan());
+        this.ui.logo.button.addEventListener("click", () => void this.handleRescan());
         this.ui.header.optionsBtn.addEventListener("click", () => this.openOptions());
     }
 
@@ -367,6 +361,7 @@ class GoldfishPopup {
     private setDrawerHidden(hidden: boolean) {
         this.ui.novel.drawer.classList.toggle("hidden", hidden);
         this.ui.novel.arrow.textContent = hidden ? "▼" : "▲";
+        this.ui.novel.toggleBtn.setAttribute("aria-expanded", String(!hidden));
 
         if (!hidden) {
             setTimeout(() => this.ui.novel.name.focus(), 50);
@@ -378,13 +373,7 @@ class GoldfishPopup {
 
         this.ui.novel.toast.textContent = message;
         this.ui.novel.toast.classList.remove("hidden");
-
-        const isError = type === "error";
-        Object.assign(this.ui.novel.toast.style, {
-            background: isError ? "#441a1a" : "#1f3d2b",
-            borderColor: isError ? "#ff5f5f" : "#28a745",
-            color: isError ? "#ffbaba" : "#8ff0b0"
-        });
+        this.ui.novel.toast.classList.toggle("error", type === "error");
 
         this.toastTimeout = setTimeout(() => this.ui.novel.toast.classList.add("hidden"), 2500);
     }
@@ -482,8 +471,7 @@ class GoldfishPopup {
     private async handleRescan() {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         if (tabs[0]?.id) {
-            this.ui.logo.img.style.transform = "rotate(360deg)";
-            this.ui.logo.img.style.transition = "transform 0.5s ease";
+            this.ui.logo.button.classList.add("is-rescanning");
 
             try {
                 await browser.tabs.sendMessage(tabs[0].id, { type: "RESCAN_PAGE" });
@@ -492,8 +480,7 @@ class GoldfishPopup {
             }
 
             setTimeout(() => {
-                this.ui.logo.img.style.transform = "none";
-                this.ui.logo.img.style.transition = "none";
+                this.ui.logo.button.classList.remove("is-rescanning");
             }, 500);
         }
     }

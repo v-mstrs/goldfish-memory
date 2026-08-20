@@ -1,3 +1,5 @@
 declare module "tabulator-tables" {
-    export const TabulatorFull: any;
+    export class TabulatorFull {
+        constructor(selector: string | HTMLElement, options?: Record<string, unknown>);
+    }
 }

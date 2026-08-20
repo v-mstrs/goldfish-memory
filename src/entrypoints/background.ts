@@ -1,14 +1,16 @@
-import { defineBackground } from 'wxt/sandbox';
 import { browser } from 'wxt/browser';
 import { apiService } from "../services/api";
 import "../contextMenu";
+import { isRuntimeMessage } from "../types/messages";
 
 export default defineBackground(() => {
     /**
      * Main message listener for the background script.
-     * Handles database queries and character creation.
+     * Handles backend queries and character creation.
      */
-    browser.runtime.onMessage.addListener(async (message: any) => {
+    browser.runtime.onMessage.addListener(async (message: unknown) => {
+        if (!isRuntimeMessage(message)) return null;
+
         try {
             switch (message.type) {
                 case "PING":

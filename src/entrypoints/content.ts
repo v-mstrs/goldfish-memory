@@ -1,8 +1,8 @@
-import { defineContentScript } from 'wxt/sandbox';
 import { browser } from 'wxt/browser';
-import { getActiveConfig, MATCH_PATTERNS } from "../sites";
+import { getActiveConfig, MATCH_PATTERNS, type SiteConfig } from "../sites";
 import { type Character } from "../services/api";
 import { showAddCharacterModal } from "../modal";
+import { isRuntimeMessage } from "../types/messages";
 
 interface HighlightDisplaySettings {
     fontSizePx: number;
@@ -53,7 +53,7 @@ export default defineContentScript({
                 }
 
                 if (document.readyState === "loading") {
-                    await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+                    await new Promise<void>((resolve) => document.addEventListener("DOMContentLoaded", () => resolve(), { once: true }));
                 }
                 await this.process(config);
             }
@@ -62,7 +62,9 @@ export default defineContentScript({
              * Sets up event listeners for messages and URL changes.
              */
             private setupListeners() {
-                browser.runtime.onMessage.addListener((message: any) => {
+                browser.runtime.onMessage.addListener((message: unknown) => {
+                    if (!isRuntimeMessage(message)) return;
+
                     if (message.type === "RESCAN_PAGE") {
                         this.init();
                         return;
@@ -153,7 +155,7 @@ export default defineContentScript({
             /**
              * Core highlighting logic. Uses a single regex pass for performance.
              */
-            private async process(config: any) {
+            private async process(config: SiteConfig) {
                 if (this.isProcessing) return;
                 this.isProcessing = true;
 
@@ -189,7 +191,7 @@ export default defineContentScript({
                         
                         for (const v of variants) {
                             nameToChar.set(v.toLowerCase(), char);
-                            searchTerms.push(v.replace(/[.*+?^${}()|[\\]/g, '\\$&'));
+                            searchTerms.push(v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
                         }
                     }
 
@@ -218,6 +220,7 @@ export default defineContentScript({
 
                     for (const textNode of nodes) {
                         const text = textNode.nodeValue || "";
+                        let nodeApplied = 0;
                         regex.lastIndex = 0;
                         if (!regex.test(text)) continue;
 
@@ -244,11 +247,12 @@ export default defineContentScript({
                             fragments.push(this.createHighlightNode(match[0], char));
 
                             matchCounts.set(matchKey, (matchCounts.get(matchKey) || 0) + 1);
+                            nodeApplied++;
                             totalApplied++;
                             lastIndex = regex.lastIndex;
                         }
 
-                        if (totalApplied > 0) {
+                        if (nodeApplied > 0) {
                             fragments.push(text.substring(lastIndex));
                             textNode.replaceWith(...fragments.map(f => typeof f === 'string' ? document.createTextNode(f) : f));
                         }

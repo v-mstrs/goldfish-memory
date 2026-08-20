@@ -2,22 +2,20 @@ import { browser } from 'wxt/browser';
 import { MATCH_PATTERNS } from "./sites";
 
 const MENU_ID = "add-character";
-const menusApi = browser.menus || browser.contextMenus;
+const menusApi = browser.contextMenus;
 
 /**
  * Initializes the context menu for character creation.
  * Scoped only to supported novel sites.
  */
 function initContextMenu() {
-    if (!menusApi) return;
-
     const registerMenu = async () => {
         try {
             await menusApi.removeAll();
             menusApi.create({
                 id: MENU_ID,
                 title: "Add Character",
-                contexts: ["selection"],
+                contexts: ["selection"]
                 documentUrlPatterns: MATCH_PATTERNS
             });
         } catch {
