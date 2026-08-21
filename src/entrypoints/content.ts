@@ -34,6 +34,9 @@ export default defineContentScript({
         class GoldfishHighlighter {
             private currentNovelSlug: string | null = null;
             private isProcessing = false;
+            private pendingRescan = false;
+            private rescanTimeout: ReturnType<typeof setTimeout> | null = null;
+            private contentObserver: MutationObserver | null = null;
             private lastUrl = location.href;
             private displaySettings: HighlightDisplaySettings = DEFAULT_DISPLAY_SETTINGS;
 
@@ -91,6 +94,55 @@ export default defineContentScript({
                         this.init();
                     }
                 });
+            }
+
+            /**
+             * Rescan when a supported site renders or replaces chapter content after
+             * the initial page load. The debounce lets framework updates settle first.
+             */
+            private observeContent(config: SiteConfig) {
+                this.contentObserver?.disconnect();
+
+                const root = document.documentElement;
+                if (!root) return;
+
+                this.contentObserver = new MutationObserver((mutations) => {
+                    if (!this.hasRelevantContentMutation(mutations, config.contentSelector)) return;
+                    this.scheduleRescan();
+                });
+
+                this.contentObserver.observe(root, {
+                    childList: true,
+                    characterData: true,
+                    subtree: true,
+                });
+            }
+
+            private hasRelevantContentMutation(mutations: MutationRecord[], selector: string): boolean {
+                const container = document.querySelector(selector);
+
+                const containsContent = (node: Node) => {
+                    if (!(node instanceof Element)) return false;
+                    return node.matches(selector) || Boolean(node.querySelector(selector));
+                };
+
+                return mutations.some((mutation) => {
+                    if (container && (mutation.target === container || container.contains(mutation.target))) {
+                        return true;
+                    }
+
+                    return [...mutation.addedNodes, ...mutation.removedNodes].some((node) =>
+                        containsContent(node) || Boolean(container && (node === container || container.contains(node)))
+                    );
+                });
+            }
+
+            private scheduleRescan(delay = 400) {
+                if (this.rescanTimeout) clearTimeout(this.rescanTimeout);
+                this.rescanTimeout = setTimeout(() => {
+                    this.rescanTimeout = null;
+                    void this.init();
+                }, delay);
             }
 
             private async handleAddCharacter(text: string) {
@@ -156,8 +208,20 @@ export default defineContentScript({
              * Core highlighting logic. Uses a single regex pass for performance.
              */
             private async process(config: SiteConfig) {
-                if (this.isProcessing) return;
+                if (this.isProcessing) {
+                    this.pendingRescan = true;
+                    return;
+                }
+
+                if (this.rescanTimeout) {
+                    clearTimeout(this.rescanTimeout);
+                    this.rescanTimeout = null;
+                }
+
                 this.isProcessing = true;
+                // Goldfish replaces text nodes while highlighting. Pausing the observer
+                // prevents those internal edits from scheduling an endless rescan loop.
+                this.contentObserver?.disconnect();
 
                 try {
                     const container = await this.waitForContainer(config.contentSelector);
@@ -264,6 +328,12 @@ export default defineContentScript({
                     console.error("[Goldfish] Content processing failed:", error);
                 } finally {
                     this.isProcessing = false;
+                    this.observeContent(config);
+
+                    if (this.pendingRescan) {
+                        this.pendingRescan = false;
+                        this.scheduleRescan(0);
+                    }
                 }
             }
 

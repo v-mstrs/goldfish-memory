@@ -15,7 +15,7 @@ function initContextMenu() {
             menusApi.create({
                 id: MENU_ID,
                 title: "Add Character",
-                contexts: ["selection"]
+                contexts: ["selection"],
                 documentUrlPatterns: MATCH_PATTERNS
             });
         } catch {
