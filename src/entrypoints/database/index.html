@@ -117,14 +117,34 @@
                         </label>
 
                         <label class="toggle-option">
-                            <input id="toggleImageColumn" type="checkbox">
-                            <span>Show Image</span>
+                            <input id="toggleImageColumn" type="checkbox" checked>
+                            <span>Show Image URL</span>
                         </label>
                     </div>
                 </section>
 
                 <section class="stack" aria-labelledby="charactersTitle">
-                    <h2 id="charactersTitle" class="panel-title">Characters</h2>
+                    <div class="table-heading-row">
+                        <h2 id="charactersTitle" class="panel-title">Characters</h2>
+                        <span id="bulkSelectionLabel" class="selection-count" aria-live="polite">0 selected</span>
+                    </div>
+
+                    <div class="bulk-edit-bar" aria-label="Edit selected characters">
+                        <label class="bulk-field" for="bulkFieldSelect">
+                            <span class="label">Change selected</span>
+                            <select id="bulkFieldSelect">
+                                <option value="highlightColor">Highlight color</option>
+                                <option value="imageUrl">Image URL</option>
+                                <option value="description">Description</option>
+                            </select>
+                        </label>
+                        <label class="bulk-value" for="bulkValueInput">
+                            <span class="label">New value</span>
+                            <input id="bulkValueInput" type="color" value="#c5daff">
+                        </label>
+                        <button id="applyBulkEditBtn" class="primary-button bulk-action" type="button" disabled>Apply to selected</button>
+                        <button id="clearSelectionBtn" class="ghost-button bulk-action" type="button" disabled>Clear selection</button>
+                    </div>
                     <div class="table-shell">
                         <div id="characterTable" aria-label="Characters table"></div>
                     </div>

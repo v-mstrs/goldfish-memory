@@ -20,6 +20,16 @@ interface HighlightDisplaySettings {
     highlightLimitPerChar: number;
 }
 
+interface CharacterTablePreferences {
+    showAliases: boolean;
+    showImageUrl: boolean;
+}
+
+const DEFAULT_TABLE_PREFERENCES: CharacterTablePreferences = {
+    showAliases: false,
+    showImageUrl: true,
+};
+
 const DEFAULT_DISPLAY_SETTINGS: HighlightDisplaySettings = {
     fontSizePx: DEFAULT_HIGHLIGHT_FONT_SIZE_PX,
     fontWeight: "700",
@@ -49,14 +59,20 @@ interface TableCell {
     getRow(): TableRow;
 }
 
+type BulkEditableField = "highlightColor" | "imageUrl" | "description";
+
 interface CharacterTable {
-    updateData(rows: CharacterRow[]): void;
+    updateData(rows: CharacterRow[]): Promise<unknown>;
     replaceData(rows: CharacterRow[]): void;
     deleteRow(id: number): void;
     clearFilter(includeHeaderFilters?: boolean): void;
     setFilter(filter: (row: CharacterRow) => boolean): void;
     showColumn(field: string): void;
     hideColumn(field: string): void;
+    redraw(force?: boolean): void;
+    getSelectedData(): CharacterRow[];
+    deselectRow(): void;
+    on(event: string, callback: (...args: any[]) => void): void;
 }
 
 class CharacterLibraryPage {
@@ -78,6 +94,11 @@ class CharacterLibraryPage {
         clearFilterBtn: document.getElementById("clearFilterBtn") as HTMLButtonElement,
         toggleAliasesColumn: document.getElementById("toggleAliasesColumn") as HTMLInputElement,
         toggleImageColumn: document.getElementById("toggleImageColumn") as HTMLInputElement,
+        bulkSelectionLabel: document.getElementById("bulkSelectionLabel") as HTMLSpanElement,
+        bulkFieldSelect: document.getElementById("bulkFieldSelect") as HTMLSelectElement,
+        bulkValueInput: document.getElementById("bulkValueInput") as HTMLInputElement,
+        applyBulkEditBtn: document.getElementById("applyBulkEditBtn") as HTMLButtonElement,
+        clearSelectionBtn: document.getElementById("clearSelectionBtn") as HTMLButtonElement,
         tableStatus: document.getElementById("tableStatus") as HTMLDivElement,
         newNovelInput: document.getElementById("newNovelInput") as HTMLInputElement,
         addNovelBtn: document.getElementById("addNovelBtn") as HTMLButtonElement,
@@ -102,6 +123,7 @@ class CharacterLibraryPage {
     }
 
     private async init() {
+        await this.loadTablePreferences();
         this.bindEvents();
         await this.loadBackendSettings();
         await this.loadNovels();
@@ -113,8 +135,11 @@ class CharacterLibraryPage {
         this.ui.novelSelect.addEventListener("change", () => void this.handleNovelChange());
         this.ui.searchInput.addEventListener("input", () => this.applySearchFilter());
         this.ui.clearFilterBtn.addEventListener("click", () => this.clearSearchFilter());
-        this.ui.toggleAliasesColumn.addEventListener("change", () => this.syncColumnVisibility());
-        this.ui.toggleImageColumn.addEventListener("change", () => this.syncColumnVisibility());
+        this.ui.toggleAliasesColumn.addEventListener("change", () => void this.syncColumnVisibility(true));
+        this.ui.toggleImageColumn.addEventListener("change", () => void this.syncColumnVisibility(true));
+        this.ui.bulkFieldSelect.addEventListener("change", () => this.syncBulkEditor());
+        this.ui.applyBulkEditBtn.addEventListener("click", () => void this.applyBulkEdit());
+        this.ui.clearSelectionBtn.addEventListener("click", () => this.table.deselectRow());
         this.ui.novelForm.addEventListener("submit", (event) => {
             event.preventDefault();
             void this.handleAddNovel();
@@ -147,6 +172,7 @@ class CharacterLibraryPage {
         });
 
         this.setHighlightColor(this.ui.charColorInput.value);
+        this.syncBulkEditor();
     }
 
     private async handleExternalNovelSelectionChange(slug: string) {
@@ -182,7 +208,7 @@ class CharacterLibraryPage {
     }
 
     private createImageCell(value: unknown): HTMLElement {
-        const container = document.createElement("span");
+        const container = document.createElement("div");
         const rawUrl = typeof value === "string" ? value.trim() : "";
         if (!rawUrl) {
             container.className = "table-empty-value";
@@ -199,8 +225,19 @@ class CharacterLibraryPage {
             link.href = url.href;
             link.target = "_blank";
             link.rel = "noopener noreferrer";
-            link.textContent = "Open";
-            return link;
+            link.textContent = rawUrl;
+            link.title = rawUrl;
+
+            const preview = document.createElement("img");
+            preview.className = "table-image-preview";
+            preview.src = url.href;
+            preview.alt = "";
+            preview.loading = "lazy";
+            preview.addEventListener("error", () => preview.classList.add("load-error"), { once: true });
+
+            container.className = "table-image-cell";
+            container.append(preview, link);
+            return container;
         } catch {
             container.className = "table-empty-value";
             container.textContent = "Invalid URL";
@@ -208,19 +245,29 @@ class CharacterLibraryPage {
         }
     }
 
-    private createColorCell(value: unknown): HTMLElement {
-        const color = this.normalizeColor(typeof value === "string" ? value : "");
+    private createColorCell(cell: TableCell): HTMLElement {
+        const color = this.normalizeColor(typeof cell.getValue() === "string" ? cell.getValue() as string : "");
         const container = document.createElement("div");
         container.className = "table-color-cell";
 
-        const dot = document.createElement("span");
-        dot.className = "table-color-dot";
-        dot.style.backgroundColor = color;
-        dot.setAttribute("aria-hidden", "true");
+        const picker = document.createElement("input");
+        picker.type = "color";
+        picker.className = "table-color-picker";
+        picker.value = color;
+        picker.setAttribute("aria-label", `Change highlight color for ${cell.getRow().getData().name}`);
+        picker.addEventListener("click", (event) => event.stopPropagation());
 
         const label = document.createElement("span");
         label.textContent = color;
-        container.append(dot, label);
+        picker.addEventListener("change", (event) => {
+            event.stopPropagation();
+            const rowData = cell.getRow().getData();
+            rowData.highlightColor = this.normalizeColor(picker.value);
+            label.textContent = rowData.highlightColor;
+            void this.persistColorChange(rowData, rowData.highlightColor);
+        });
+
+        container.append(picker, label);
         return container;
     }
 
@@ -247,31 +294,53 @@ class CharacterLibraryPage {
     private createTable() {
         this.table = new Tabulator("#characterTable", {
             layout: "fitColumns",
-            height: "640px",
+            height: "min(640px, 68vh)",
             placeholder: "Select a novel to load saved characters.",
             pagination: true,
-            paginationSize: 10,
-            selectableRows: 1,
+            paginationSize: 15,
+            paginationSizeSelector: [15, 30, 50, 100],
+            paginationCounter: "rows",
+            selectableRows: true,
             resizableColumnFit: true,
+            movableColumns: true,
+            columnHeaderVertAlign: "middle",
             index: "id",
+            initialSort: [{ column: "name", dir: "asc" }],
             columns: [
-                { title: "Name", field: "name", editor: "input", width: 180 },
-                { title: "Aliases", field: "aliasesText", editor: "input", width: 220, visible: false },
-                { title: "Description", field: "description", editor: "textarea", widthGrow: 2.6 },
                 {
-                    title: "Image",
+                    title: "",
+                    formatter: "rowSelection",
+                    titleFormatter: "rowSelection",
+                    formatterParams: { rowRange: "active" },
+                    titleFormatterParams: { rowRange: "active" },
+                    hozAlign: "center",
+                    headerHozAlign: "center",
+                    headerSort: false,
+                    width: 40,
+                    minWidth: 40,
+                    resizable: false,
+                    frozen: true,
+                    vertAlign: "middle",
+                    cssClass: "selection-column",
+                },
+                { title: "Name", field: "name", editor: "input", minWidth: 160, widthGrow: 1, frozen: true },
+                { title: "Aliases", field: "aliasesText", editor: "input", minWidth: 190, widthGrow: 1.2, visible: false },
+                { title: "Description", field: "description", editor: "textarea", minWidth: 260, widthGrow: 2.6 },
+                {
+                    title: "Image URL",
                     field: "imageUrl",
                     editor: "input",
-                    width: 190,
-                    visible: false,
+                    minWidth: 240,
+                    widthGrow: 1.5,
+                    visible: true,
                     formatter: (cell: TableCell) => this.createImageCell(cell.getValue())
                 },
                 {
                     title: "Color",
                     field: "highlightColor",
-                    editor: "input",
                     width: 150,
-                    formatter: (cell: TableCell) => this.createColorCell(cell.getValue())
+                    headerSort: false,
+                    formatter: (cell: TableCell) => this.createColorCell(cell)
                 },
                 {
                     title: "",
@@ -280,6 +349,7 @@ class CharacterLibraryPage {
                     hozAlign: "center",
                     headerSort: false,
                     resizable: false,
+                    frozen: true,
                     formatter: (cell: TableCell) => {
                         const row = cell.getRow().getData();
                         return this.createActionsCell(row);
@@ -299,23 +369,35 @@ class CharacterLibraryPage {
                     }
                 }
             ],
-            rowClick: (_event: Event, row: TableRow) => {
-                row.select();
-            },
-            cellEdited: (cell: TableCell) => {
-                const rowData = cell.getRow().getData();
-                rowData.isDirty = true;
-                this.currentRows = this.currentRows.map((row) => row.id === rowData.id ? { ...rowData } : row);
-                this.table.updateData([rowData]);
-                this.showStatus(`Unsaved changes for ${rowData.name}`);
-            },
-            dataFiltered: (_filters: unknown, rows: Array<{ getData: () => CharacterRow }>) => {
-                this.updateMetrics(rows.map((row) => row.getData()));
-            },
-            tableBuilt: () => {
-                this.syncColumnVisibility();
-            }
         }) as CharacterTable;
+
+        // Tabulator 6 exposes table events through .on(); constructor callbacks
+        // are not registered and therefore never fire.
+        this.table.on("rowSelectionChanged", (data: CharacterRow[]) => {
+            this.renderBulkSelection(data.length);
+        });
+        this.table.on("cellEdited", (cell: TableCell) => {
+            const rowData = cell.getRow().getData();
+            rowData.isDirty = true;
+            this.currentRows = this.currentRows.map((row) => row.id === rowData.id ? { ...rowData } : row);
+            this.table.updateData([rowData]);
+            this.showStatus(`Unsaved changes for ${rowData.name}`);
+        });
+        this.table.on("dataFiltered", (_filters: unknown, rows: Array<{ getData: () => CharacterRow }>) => {
+            this.updateMetrics(rows.map((row) => row.getData()));
+        });
+        this.table.on("tableBuilt", () => {
+            void this.syncColumnVisibility();
+        });
+    }
+
+    private async loadTablePreferences() {
+        const { characterTablePreferences } = await browser.storage.local.get("characterTablePreferences");
+        const stored = characterTablePreferences as Partial<CharacterTablePreferences> | undefined;
+
+        this.ui.toggleAliasesColumn.checked = stored?.showAliases ?? DEFAULT_TABLE_PREFERENCES.showAliases;
+        this.ui.toggleImageColumn.checked = stored?.showImageUrl ?? DEFAULT_TABLE_PREFERENCES.showImageUrl;
+        await this.syncColumnVisibility();
     }
 
     private async loadBackendSettings() {
@@ -323,6 +405,78 @@ class CharacterLibraryPage {
         this.ui.apiBaseUrlSetting.value = typeof apiBaseUrl === "string" && apiBaseUrl.trim()
             ? apiBaseUrl.trim()
             : DEFAULT_API_BASE_URL;
+    }
+
+    private syncBulkEditor() {
+        const field = this.ui.bulkFieldSelect.value as BulkEditableField;
+        const input = this.ui.bulkValueInput;
+
+        if (field === "highlightColor") {
+            input.type = "color";
+            input.value = this.normalizeColor(input.value);
+            input.placeholder = "#c5daff";
+        } else if (field === "imageUrl") {
+            input.type = "url";
+            input.value = "";
+            input.placeholder = "https://example.com/image.jpg (blank removes images)";
+        } else {
+            input.type = "text";
+            input.value = "";
+            input.placeholder = "Replacement description";
+        }
+    }
+
+    private renderBulkSelection(count: number) {
+        this.ui.bulkSelectionLabel.textContent = count === 1 ? "1 selected" : `${count} selected`;
+        this.ui.applyBulkEditBtn.disabled = count === 0;
+        this.ui.clearSelectionBtn.disabled = count === 0;
+    }
+
+    private async applyBulkEdit() {
+        const selectedRows = this.table.getSelectedData();
+        if (selectedRows.length === 0 || !this.currentNovelSlug) return;
+
+        const field = this.ui.bulkFieldSelect.value as BulkEditableField;
+        const rawValue = this.ui.bulkValueInput.value.trim();
+        if (field === "description" && !rawValue) {
+            this.showStatus("Description cannot be empty", true);
+            return;
+        }
+        if (field === "imageUrl" && rawValue && !/^https?:\/\/.+/i.test(rawValue)) {
+            this.showStatus("Use a full image URL beginning with http:// or https://", true);
+            return;
+        }
+
+        const value = field === "highlightColor" ? this.normalizeColor(rawValue) : rawValue;
+        this.ui.applyBulkEditBtn.disabled = true;
+
+        const originalButtonLabel = this.ui.applyBulkEditBtn.textContent || "Apply to selected";
+
+        try {
+            const updatedRows: CharacterRow[] = [];
+            for (const [index, row] of selectedRows.entries()) {
+                this.ui.applyBulkEditBtn.textContent = `Updating ${index + 1}/${selectedRows.length}…`;
+                const updatedCharacter = await apiService.updateCharacterFields(
+                    this.currentNovelSlug,
+                    row.id,
+                    { [field]: value },
+                );
+                updatedRows.push(this.toCharacterRow(updatedCharacter));
+            }
+            const updatedById = new Map(updatedRows.map((row) => [row.id, row]));
+
+            this.currentRows = this.currentRows.map((row) => updatedById.get(row.id) || row);
+            await this.table.updateData(updatedRows);
+            this.table.deselectRow();
+            this.showStatus(`Updated ${updatedRows.length} characters`);
+            await this.handleRescan();
+        } catch (error) {
+            this.showStatus(this.formatError(error, "Failed to update selected characters"), true);
+            await this.loadCharactersForCurrentNovel();
+        } finally {
+            this.ui.applyBulkEditBtn.textContent = originalButtonLabel;
+            this.ui.applyBulkEditBtn.disabled = this.table.getSelectedData().length === 0;
+        }
     }
 
     private async saveBackendSettings() {
@@ -466,6 +620,24 @@ class CharacterLibraryPage {
             await this.handleRescan();
         } catch (error) {
             this.showStatus(this.formatError(error, `Failed to update ${rowData.name}`), true);
+            await this.loadCharactersForCurrentNovel();
+        }
+    }
+
+    private async persistColorChange(rowData: CharacterRow, color: string) {
+        if (!this.currentNovelSlug) return;
+
+        try {
+            const updated = await apiService.updateCharacterFields(this.currentNovelSlug, rowData.id, {
+                highlightColor: this.normalizeColor(color),
+            });
+            const updatedRow = this.toCharacterRow(updated);
+            await this.table.updateData([updatedRow]);
+            this.currentRows = this.currentRows.map((row) => row.id === updatedRow.id ? updatedRow : row);
+            this.showStatus(`Changed ${updatedRow.name} to ${updatedRow.highlightColor}`);
+            await this.handleRescan();
+        } catch (error) {
+            this.showStatus(this.formatError(error, `Failed to change ${rowData.name}'s color`), true);
             await this.loadCharactersForCurrentNovel();
         }
     }
@@ -699,7 +871,7 @@ class CharacterLibraryPage {
         }, 1200);
     }
 
-    private syncColumnVisibility() {
+    private async syncColumnVisibility(persist = false) {
         // Tabulator may fire tableBuilt before the constructor assignment completes.
         if (!this.table) return;
 
@@ -713,6 +885,19 @@ class CharacterLibraryPage {
             this.table.showColumn("imageUrl");
         } else {
             this.table.hideColumn("imageUrl");
+        }
+
+        // Frozen columns retain their previous offset until Tabulator performs a
+        // full layout pass. Redraw so Actions remains flush with the right edge.
+        this.table.redraw(true);
+
+        if (persist) {
+            await browser.storage.local.set({
+                characterTablePreferences: {
+                    showAliases: this.ui.toggleAliasesColumn.checked,
+                    showImageUrl: this.ui.toggleImageColumn.checked,
+                } satisfies CharacterTablePreferences,
+            });
         }
     }
 
@@ -736,14 +921,10 @@ class CharacterLibraryPage {
         return fallback;
     }
     private async handleRescan() {
-        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-        if (!tabs[0]?.id) return;
-
-        try {
-            await browser.tabs.sendMessage(tabs[0].id, { type: "RESCAN_PAGE" });
-        } catch {
-            // Ignore if content script is unavailable for the active tab.
-        }
+        const tabs = await browser.tabs.query({});
+        await Promise.allSettled(tabs
+            .filter((tab) => typeof tab.id === "number")
+            .map((tab) => browser.tabs.sendMessage(tab.id!, { type: "RESCAN_PAGE" })));
     }
 }
 

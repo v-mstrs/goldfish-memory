@@ -15,6 +15,8 @@ export interface Character {
     highlightColor?: string;
 }
 
+export type CharacterFieldUpdates = Partial<Pick<Character, "description" | "imageUrl" | "highlightColor">>;
+
 interface NovelDetailResponse {
     id: number;
     title: string;
@@ -138,6 +140,31 @@ export class ApiService {
                 image_url: character.imageUrl?.trim() || "",
                 highlight_color: character.highlightColor?.trim() || ""
             })
+        });
+
+        return {
+            id: result.id,
+            name: result.name,
+            aliases: result.aliases || [],
+            description: result.description || "",
+            imageUrl: result.image_url || "",
+            highlightColor: result.highlight_color || ""
+        };
+    }
+
+    async updateCharacterFields(
+        novelSlug: string,
+        characterId: number,
+        updates: CharacterFieldUpdates,
+    ): Promise<Character> {
+        const body: Record<string, string> = {};
+        if (updates.description !== undefined) body.description = updates.description.trim();
+        if (updates.imageUrl !== undefined) body.image_url = updates.imageUrl.trim();
+        if (updates.highlightColor !== undefined) body.highlight_color = updates.highlightColor.trim();
+
+        const result = await this.request<CharacterApiResponse>(`/novels/${encodeURIComponent(novelSlug)}/characters/${characterId}`, {
+            method: "PUT",
+            body: JSON.stringify(body)
         });
 
         return {

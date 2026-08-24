@@ -77,8 +77,11 @@ export default defineContentScript({
                     }
                 });
 
-                // Smart tooltip positioning
-                document.addEventListener('mouseover', this.handleTooltipPositioning.bind(this));
+                // Keep character tooltips next to the pointer instead of anchoring
+                // them to the highlighted text (which may wrap across lines).
+                const positionTooltip = this.handleTooltipPositioning.bind(this);
+                document.addEventListener('mouseover', positionTooltip);
+                document.addEventListener('mousemove', positionTooltip);
 
                 // SPA support: watch for URL changes
                 setInterval(() => {
@@ -165,30 +168,32 @@ export default defineContentScript({
                 const tooltip = target.querySelector('.goldfish-tooltip') as HTMLElement;
                 if (!tooltip) return;
 
-                const config = getActiveConfig();
-                const container = config
-                    ? (target.closest(config.contentSelector) as HTMLElement | null) || document.querySelector(config.contentSelector) as HTMLElement | null
-                    : null;
-                const rect = target.getBoundingClientRect();
-                const bounds = (container || document.documentElement).getBoundingClientRect();
-                tooltip.classList.remove('bottom', 'align-left', 'align-right');
+                const deferredImage = tooltip.querySelector('img[data-src]') as HTMLImageElement | null;
+                if (deferredImage?.dataset.src) {
+                    const imageUrl = deferredImage.dataset.src;
+                    delete deferredImage.dataset.src;
+                    deferredImage.addEventListener('load', () => this.handleTooltipPositioning(e), { once: true });
+                    deferredImage.src = imageUrl;
+                }
 
                 const tooltipHeight = tooltip.offsetHeight || 200;
                 const tooltipWidth = tooltip.offsetWidth || 280;
-                if (rect.top - tooltipHeight < 20) {
-                    tooltip.classList.add('bottom');
-                }
+                const edgePadding = 12;
+                const cursorGap = 14;
+                const maxLeft = Math.max(edgePadding, window.innerWidth - tooltipWidth - edgePadding);
+                const left = Math.min(
+                    Math.max(e.clientX - tooltipWidth / 2, edgePadding),
+                    maxLeft,
+                );
+                const top = e.clientY - tooltipHeight - cursorGap >= edgePadding
+                    ? e.clientY - tooltipHeight - cursorGap
+                    : Math.min(
+                        e.clientY + cursorGap,
+                        Math.max(edgePadding, window.innerHeight - tooltipHeight - edgePadding),
+                    );
 
-                const spaceOnLeft = rect.left - bounds.left;
-                const spaceOnRight = bounds.right - rect.right;
-                const halfTooltipWidth = tooltipWidth / 2;
-                const edgePadding = 24;
-
-                if (spaceOnLeft < halfTooltipWidth + edgePadding) {
-                    tooltip.classList.add('align-left');
-                } else if (spaceOnRight < halfTooltipWidth + edgePadding) {
-                    tooltip.classList.add('align-right');
-                }
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
             }
 
             /**
@@ -382,7 +387,9 @@ export default defineContentScript({
 
                 if (char.imageUrl) {
                     const img = document.createElement('img');
-                    img.src = char.imageUrl;
+                    img.dataset.src = char.imageUrl;
+                    img.loading = 'lazy';
+                    img.decoding = 'async';
                     tooltip.appendChild(img);
                 }
 
@@ -441,11 +448,12 @@ export default defineContentScript({
                         cursor: help !important;
                     }
                     .goldfish-tooltip {
-                        position: absolute !important;
-                        bottom: 125% !important;
-                        left: 50% !important;
+                        position: fixed !important;
+                        top: 0;
+                        bottom: auto !important;
+                        left: 0;
                         right: auto !important;
-                        transform: translateX(-50%) !important;
+                        transform: none !important;
                         background-color: rgba(20, 20, 23, 0.95) !important;
                         color: #f0f0f0 !important;
                         padding: 12px !important;
@@ -470,32 +478,7 @@ export default defineContentScript({
                     .goldfish-highlight:hover .goldfish-tooltip {
                         visibility: visible !important;
                         opacity: 1 !important;
-                        transform: translateX(-50%) translateY(-5px) !important;
-                    }
-                    .goldfish-tooltip.align-left {
-                        left: 0 !important;
-                        right: auto !important;
-                        transform: translateX(0) !important;
-                    }
-                    .goldfish-tooltip.align-right {
-                        left: auto !important;
-                        right: 0 !important;
-                        transform: translateX(0) !important;
-                    }
-                    .goldfish-highlight:hover .goldfish-tooltip.align-left,
-                    .goldfish-highlight:hover .goldfish-tooltip.align-right {
-                        transform: translateY(-5px) !important;
-                    }
-                    .goldfish-tooltip.bottom {
-                        bottom: auto !important;
-                        top: 125% !important;
-                    }
-                    .goldfish-highlight:hover .goldfish-tooltip.bottom.align-left,
-                    .goldfish-highlight:hover .goldfish-tooltip.bottom.align-right {
-                        transform: translateY(5px) !important;
-                    }
-                    .goldfish-highlight:hover .goldfish-tooltip.bottom {
-                        transform: translateX(-50%) translateY(5px) !important;
+                        transform: none !important;
                     }
                     .goldfish-tooltip img {
                         max-width: 150px !important;
